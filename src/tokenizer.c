@@ -68,17 +68,3 @@ unsigned int token_count(char** toklist) {
   return i;
 }
 
-#ifdef NOT_USED
-int main() {
-  char** tokens = tokenize("test string.");
-
-  char** it;
-  for (it = tokens; it && *it; ++it) {
-    printf("%s\n", *it);
-    free(*it);
-  }
-
-  free(tokens);
-  return 0;
-}
-#endif
