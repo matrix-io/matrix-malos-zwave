@@ -31,9 +31,11 @@ message(STATUS "MATRIX ZMQ LIB found => " "${MATRIX_ZMQ_LIB}")
 message(STATUS "ZWAVEIP found => " "${ZWAVEIP_LIB}")
 message(STATUS "XML2 found =>" "${LIBXML2_LIBRARIES}")
 
-
+# driver.proto
 PROTOBUF_GENERATE_CPP(MALOS_PROTO_SRC MALOS_PROTO_HEADER ../protocol-buffers/malos/driver.proto)
 
+# zwave_commands.proto
+PROTOBUF_GENERATE_CPP(ZWAVE_COMMANDS_PROTO_SRC ZWAVE_COMMANDS_PROTO_HEADER ../protocol-buffers/malos/zwave_commands.proto)
 
 include_directories(
   ${LIBXML2_INCLUDE_DIR}
@@ -41,14 +43,16 @@ include_directories(
   ${PROTOBUF_INCLUDE_DIRS})
 
 set(malos_zwave_src
-  malos_zwave.c 
+  malos_zigbee.cpp
+  driver_zwave.cpp 
   tokenizer.c
   hexchar.c 
   util.c 
   tokquote/tokquote.c
   xml/zw_cmd_tool.c
   xml/parse_xml.c
-  ${MALOS_PROTO_SRC} ${MALOS_PROTO_HEADER}
+  ${MALOS_PROTO_SRC}
+  ${ZWAVE_COMMANDS_PROTO_SRC}
 )
 
 add_executable(malos_zwave ${malos_zwave_src})
