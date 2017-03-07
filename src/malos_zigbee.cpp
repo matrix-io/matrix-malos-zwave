@@ -39,15 +39,15 @@ int RunServer() {
                    std::to_string(kBasePort)
             << "." << std::endl;
 
-/*
-  ZigbeeDriver driver_zigbee;
-  if (!driver_zigbee.Init(kBasePort + 1, kUnsecureBindScope)) {
-    return 1;
-  }
-  driver_manager.RegisterDriver(&driver_zigbee);
+  /*
+    ZigbeeDriver driver_zigbee;
+    if (!driver_zigbee.Init(kBasePort + 1, kUnsecureBindScope)) {
+      return 1;
+    }
+    driver_manager.RegisterDriver(&driver_zigbee);
 
-  driver_manager.ServeInfoRequestsForEver();
-*/
+    driver_manager.ServeInfoRequestsForEver();
+  */
   return 0;  // Never reached.
 }
 }  // namespace matrix_malos

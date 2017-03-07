@@ -27,7 +27,6 @@ const char kZWaveDriverName[] = "ZWave";
 
 namespace matrix_malos {
 
-
 class ZWaveDriver : public MalosBase {
  public:
   ZWaveDriver() : MalosBase(kZWaveDriverName) {
@@ -43,9 +42,13 @@ class ZWaveDriver : public MalosBase {
   bool SendUpdate() override;
 
  private:
-  ZwaveParams zw_msg;
+  void Send(ZwaveParams& msg);
+  void AddNode(ZwaveParams& msg);
+  void RemoveNode(ZwaveParams& msg);
+  void SetDefault(ZwaveParams& msg);
+  void List(ZwaveParams& msg);
 };
 
 }  // namespace matrix_malos
 
-#endif  // SRC_DRIVER_ZWAVE_H_ 
+#endif  // SRC_DRIVER_ZWAVE_H_

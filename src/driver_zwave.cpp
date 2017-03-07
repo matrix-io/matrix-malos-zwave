@@ -15,23 +15,44 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <chrono>
-#include <thread>
 #include <iostream>
+#include <string>
+#include <thread>
 
 #include "./driver_zwave.h"
 
 #include "./src/driver.pb.h"
 
 namespace matrix_malos {
+ZwaveParams_ZwaveOperations i;
 
 bool ZWaveDriver::ProcessConfig(const DriverConfig& config) {
   ZwaveParams zwave(config.zwave());
 
+  if (zwave.operation() == ZwaveParams::SEND) {
+    Send(zwave);
+  }
+
+  /*
+     UNDEF=0;
+     SEND=1;
+     ADDNODE=2;
+     REMOVENODE=3;
+     SETDEFAULT=4;
+     LIST=5;
+  */
   return true;
 }
 
-bool ZWaveDriver::SendUpdate() {
-  return true;
-}
+bool ZWaveDriver::SendUpdate() { return true; }
+
+void ZWaveDriver::Send(ZwaveParams& msg) {}
+
+void ZWaveDriver::AddNode(ZwaveParams& msg) {}
+
+void ZWaveDriver::RemoveNode(ZwaveParams& msg) {}
+
+void ZWaveDriver::SetDefault(ZwaveParams& msg) {}
+
+void ZWaveDriver::List(ZwaveParams& msg) {}
 }
