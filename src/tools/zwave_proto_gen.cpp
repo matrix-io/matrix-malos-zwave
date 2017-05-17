@@ -64,20 +64,22 @@ int main(int argc, char* argv[]) {
   /* enum ClassType */
   int class_index = 0;
   os << " enum ClassType {" << std::endl;
+  os << "  UNDEFINED = 0;" << std::endl;
   for (auto& class_name : class_names) {
-    os << "  " << class_name << " = " << class_index++ << ";" << std::endl;
+    os << "  " << class_name << " = " << ++class_index << ";" << std::endl;
   }
   os << "  }" << std::endl << std::endl;
 
   /* enum CmdType */
   int cmd_index = 0;
   os << " enum CmdType {" << std::endl;
+  os << "  UNDEFINED = 0;" << std::endl;
   for (auto& cmd_name : cmd_names) {
-    os << "  " << cmd_name << " = " << cmd_index++ << ";" << std::endl;
+    os << "  " << cmd_name << " = " << ++cmd_index << ";" << std::endl;
   }
   os << "  }" << std::endl << std::endl;
 
-  os << " ClassType class = 1;" << std::endl;
+  os << " ClassType zwclass = 1;" << std::endl;
   os << " CmdType cmd = 2;" << std::endl;
   os << " string  params = 3;" << std::endl;
 
