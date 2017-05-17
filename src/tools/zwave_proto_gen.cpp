@@ -64,7 +64,7 @@ int main(int argc, char* argv[]) {
   /* enum ClassType */
   int class_index = 0;
   os << " enum ClassType {" << std::endl;
-  os << "  UNDEFINED = 0;" << std::endl;
+  os << "  COMMAND_CLASS_UNDEFINED = 0;" << std::endl;
   for (auto& class_name : class_names) {
     os << "  " << class_name << " = " << ++class_index << ";" << std::endl;
   }
@@ -73,7 +73,7 @@ int main(int argc, char* argv[]) {
   /* enum CmdType */
   int cmd_index = 0;
   os << " enum CmdType {" << std::endl;
-  os << "  UNDEFINED = 0;" << std::endl;
+  os << "  CMD_UNDEFINED = 0;" << std::endl;
   for (auto& cmd_name : cmd_names) {
     os << "  " << cmd_name << " = " << ++cmd_index << ";" << std::endl;
   }
@@ -81,7 +81,7 @@ int main(int argc, char* argv[]) {
 
   os << " ClassType zwclass = 1;" << std::endl;
   os << " CmdType cmd = 2;" << std::endl;
-  os << " string  params = 3;" << std::endl;
+  os << " bytes params = 3;" << std::endl;
 
   os << "}" << std::endl;
 
