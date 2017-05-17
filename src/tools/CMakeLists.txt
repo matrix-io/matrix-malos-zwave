@@ -9,4 +9,6 @@ add_executable(zwave_proto_gen  zwave_proto_gen.cpp)
   set_property(TARGET zwave_proto_gen  PROPERTY CXX_STANDARD 11)
   target_link_libraries(zwave_proto_gen ${ZW_CMD_TOOL_LIB})
 
-
+add_executable(zwave_json_gen  zwave_json_gen.cpp)
+  set_property(TARGET zwave_json_gen  PROPERTY CXX_STANDARD 11)
+  target_link_libraries(zwave_json_gen ${ZW_CMD_TOOL_LIB})
