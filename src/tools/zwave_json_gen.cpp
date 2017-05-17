@@ -76,7 +76,7 @@ int main(int argc, char* argv[]) {
     }
 
     os << "  }";
-    if (class_index != number_of_classes) os << ", ";
+    if (class_index != class_names.size()) os << ", ";
     os << std::endl;
   }
   os << "}";
