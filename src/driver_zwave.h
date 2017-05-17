@@ -1,7 +1,9 @@
 /*
- * Copyright 2016 <Admobilize>
+ * Copyright 2017 <Admobilize>
  * MATRIX Labs  [http://creator.matrix.one]
  * This file is part of MATRIX Creator MALOS
+ *
+ * Author: Andres Calderon <andres.calderon@admobilize.com>
  *
  * MATRIX Creator MALOS is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -19,6 +21,12 @@
 #define SRC_DRIVER_ZWAVE_H_
 
 #include <memory>
+#include <valarray>
+
+extern "C" {
+#include <zwaveip/libzwaveip.h>
+#include <zwaveip/zw_cmd_tool.h>
+}
 
 #include <matrix_malos/malos_base.h>
 #include "./src/driver.pb.h"
@@ -29,7 +37,7 @@ namespace matrix_malos {
 
 class ZWaveDriver : public MalosBase {
  public:
-  ZWaveDriver() : MalosBase(kZWaveDriverName) {
+  ZWaveDriver() : MalosBase(kZWaveDriverName), cfgPsk_(64) {
     SetNeedsKeepalives(true);
     SetMandatoryConfiguration(true);
     SetNotesForHuman("ZWave Driver v1.0");
@@ -42,13 +50,27 @@ class ZWaveDriver : public MalosBase {
   bool SendUpdate() override;
 
  private:
+  // MALOS exposed methods
   void Send(ZwaveParams& msg);
   void AddNode(ZwaveParams& msg);
   void RemoveNode(ZwaveParams& msg);
   void SetDefault(ZwaveParams& msg);
   void List(ZwaveParams& msg);
-};
 
+ private:
+  zconnection* zip_connect(const char* remote_addr);
+static void transmit_done_pan(struct zconnection* zc,
+                              transmission_status_code_t status);
+
+ private:
+  std::string destAddress_;
+  zconnection* panConnection_;
+  static bool panConnectionBusy_;
+
+  std::valarray<uint8_t> cfgPsk_;  // fixed size = 64
+  uint8_t cfgPskLen_;
+  std::string serverIP_;
+};
 }  // namespace matrix_malos
 
 #endif  // SRC_DRIVER_ZWAVE_H_
