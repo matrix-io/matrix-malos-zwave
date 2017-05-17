@@ -77,10 +77,9 @@ int main(int argc, char* argv[]) {
   }
   os << "  }" << std::endl << std::endl;
 
-  os << " string address = 1;" << std::endl;
-  os << " ClassType class = 2;" << std::endl;
-  os << " CmdType cmd = 3;" << std::endl;
-  os << " string  params = 4;" << std::endl;
+  os << " ClassType class = 1;" << std::endl;
+  os << " CmdType cmd = 2;" << std::endl;
+  os << " string  params = 3;" << std::endl;
 
   os << "}" << std::endl;
 
