@@ -22,6 +22,12 @@
 #include <string>
 #include <thread>
 
+#include <gflags/gflags.h>
+
+DEFINE_int32(port, 41230, "ZWaveIP gateway port");
+DEFINE_string(host, "::1", "ZWaveIP Gateway ");
+DEFINE_string(psk, "123456789012345678901234567890aa", "PSK");
+
 extern "C" {
 #include <zwaveip/libzwaveip.h>
 #include <zwaveip/zw_cmd_tool.h>
@@ -146,6 +152,8 @@ zconnection* ZWaveDriver::zip_connect(const char* remote_addr) {
   static uint8_t psk[] = {0x12, 0x34, 0x56, 0x78, 0x90, 0x12, 0x34, 0x56,
                           0x78, 0x90, 0x12, 0x34, 0x56, 0x78, 0x90, 0xAA};
 
+  std::cout << "ZWaveDriver::zip_connect" << std::endl;
+
   if (cfgPskLen_ == 0) {
     memcpy(&cfgPsk_[0], psk, sizeof(psk));
     cfgPskLen_ = sizeof(psk);
@@ -168,6 +176,9 @@ void ZWaveDriver::application_command_handler(struct zconnection* connection,
 
 void ZWaveDriver::transmit_done_pan(struct zconnection* zc,
                                     transmission_status_code_t status) {
+
+  std::cout << "ZWaveDriver::transmit_done_pan" << std::endl;
+
   switch (status) {
     case TRANSMIT_OK:
       break;

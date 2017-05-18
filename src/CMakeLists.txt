@@ -24,12 +24,15 @@ FIND_LIBRARY(MATRIX_LIB NAMES matrix_malos)
 FIND_LIBRARY(MATRIX_ZMQ_LIB NAMES matrix_malos_zmq)
 FIND_LIBRARY(ZWAVEIP_LIB NAMES zwaveip)
 FIND_LIBRARY(ZWCMDTOOL_LIB NAMES zw_cmd_tool)
+FIND_LIBRARY(GFLAGS_LIB NAMES gflags)
+
 
 message(STATUS "ZMQ found => " "${ZMQ_LIB}")
 message(STATUS "MATRIX LIB found => " "${MATRIX_LIB}")
 message(STATUS "MATRIX ZMQ LIB found => " "${MATRIX_ZMQ_LIB}")
 message(STATUS "ZWAVEIP found => " "${ZWAVEIP_LIB}")
 message(STATUS "XML2 found =>" "${LIBXML2_LIBRARIES}")
+message(STATUS "gflags found =>" "${GFLAGS_LIB}") 
 
 # driver.proto
 PROTOBUF_GENERATE_CPP(MALOS_PROTO_SRC MALOS_PROTO_HEADER ../protocol-buffers/malos/driver.proto)
@@ -45,12 +48,6 @@ include_directories(
 set(malos_zwave_src
   malos_zigbee.cpp
   driver_zwave.cpp 
-  tokenizer.c
-  hexchar.c 
-  util.c 
-  tokquote/tokquote.c
-  xml/zw_cmd_tool.c
-  xml/parse_xml.c
   ${MALOS_PROTO_SRC}
   ${ZWAVE_COMMANDS_PROTO_SRC}
 )
@@ -66,3 +63,5 @@ add_executable(malos_zwave ${malos_zwave_src})
   target_link_libraries(malos_zwave ${OPENSSL_LIBRARIES})
   target_link_libraries(malos_zwave ${READLINE_LIB})
   target_link_libraries(malos_zwave ${LIBXML2_LIBRARIES})
+  target_link_libraries(malos_zwave ${GFLAGS_LIB})
+
