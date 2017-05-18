@@ -41,7 +41,16 @@ extern "C" {
 
 namespace matrix_malos {
 
-ZwaveParams_ZwaveOperations i;
+bool ZWaveDriver::panConnectionBusy_;
+
+ZWaveDriver::ZWaveDriver() : MalosBase(kZWaveDriverName), cfgPsk_(64) {
+  SetNeedsKeepalives(true);
+  SetMandatoryConfiguration(true);
+  SetNotesForHuman("ZWave Driver v1.0");
+  panConnectionBusy_ = false;
+}
+
+// ZwaveParams_ZwaveOperations i;
 
 bool ZWaveDriver::ProcessConfig(const DriverConfig& config) {
   ZwaveParams zwave(config.zwave());
@@ -121,7 +130,7 @@ void ZWaveDriver::Send(ZwaveParams& msg) {
   zconnection_set_transmit_done_func(panConnection_, transmit_done_pan);
   if (zconnection_send_async(panConnection_, binaryCommand, binaryCommandLen,
                              0)) {
-    panConnectionBusy_ = 1;
+    panConnectionBusy_ = true;
   }
 }
 
@@ -145,16 +154,20 @@ zconnection* ZWaveDriver::zip_connect(const char* remote_addr) {
 
   struct zconnection* zc;
 
-  zc = zclient_start(remote_addr, 41230, cfgPsk_, cfgPskLen_,
-                     application_command_handler);
+  zc = zclient_start(remote_addr, 41230, reinterpret_cast<char*>(&cfgPsk_[0]),
+                     cfgPskLen_, application_command_handler);
   if (zc == 0) {
     std::cerr << "Error connecting." << std::endl;
   }
   return zc;
 }
 
-static void ZWaveDriver::transmit_done_pan(struct zconnection* zc,
-                                           transmission_status_code_t status) {
+void ZWaveDriver::application_command_handler(struct zconnection* connection,
+                                              const uint8_t* data,
+                                              uint16_t datalen) {}
+
+void ZWaveDriver::transmit_done_pan(struct zconnection* zc,
+                                    transmission_status_code_t status) {
   switch (status) {
     case TRANSMIT_OK:
       break;
@@ -165,7 +178,7 @@ static void ZWaveDriver::transmit_done_pan(struct zconnection* zc,
       std::cerr << "Transmit attempt timed out" << std::endl;
       break;
   }
-  panConnectionBusy_ = false;
+  ZWaveDriver::panConnectionBusy_ = false;
 }
 
 }  // namespace matrix_malos

@@ -37,11 +37,7 @@ namespace matrix_malos {
 
 class ZWaveDriver : public MalosBase {
  public:
-  ZWaveDriver() : MalosBase(kZWaveDriverName), cfgPsk_(64) {
-    SetNeedsKeepalives(true);
-    SetMandatoryConfiguration(true);
-    SetNotesForHuman("ZWave Driver v1.0");
-  }
+  ZWaveDriver();
 
   // Read configuration of LEDs (from the outside world).
   bool ProcessConfig(const DriverConfig& config) override;
@@ -59,8 +55,12 @@ class ZWaveDriver : public MalosBase {
 
  private:
   zconnection* zip_connect(const char* remote_addr);
-static void transmit_done_pan(struct zconnection* zc,
-                              transmission_status_code_t status);
+  static void transmit_done_pan(struct zconnection* zc,
+                                transmission_status_code_t status);
+
+  static void application_command_handler(struct zconnection* connection,
+                                          const uint8_t* data,
+                                          uint16_t datalen);
 
  private:
   std::string destAddress_;
