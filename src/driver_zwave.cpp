@@ -25,7 +25,7 @@
 #include <gflags/gflags.h>
 
 DEFINE_int32(port, 41230, "ZWaveIP gateway port");
-DEFINE_string(host, "::1", "ZWaveIP Gateway ");
+DEFINE_string(server, "::1", "ZWaveIP Gateway ");
 DEFINE_string(psk, "123456789012345678901234567890aa", "PSK");
 
 extern "C" {
@@ -54,6 +54,10 @@ ZWaveDriver::ZWaveDriver() : MalosBase(kZWaveDriverName), cfgPsk_(64) {
   SetMandatoryConfiguration(true);
   SetNotesForHuman("ZWave Driver v1.0");
   panConnectionBusy_ = false;
+
+  serverIP_ = FLAGS_server;
+
+  ConnectToGateway();
 }
 
 // ZwaveParams_ZwaveOperations i;
@@ -124,7 +128,7 @@ void ZWaveDriver::Send(ZwaveParams& msg) {
     // FIXME: Use thread synchronization instead of sleep to avoid "Socket Read
     // Error"
     std::this_thread::sleep_for(std::chrono::seconds(1));
-    panConnection_ = zip_connect(msg.device().c_str());
+    panConnection_ = ZipConnect(msg.device().c_str());
   }
   if (!panConnection_) {
     fprintf(stderr, "Failed to connect to PAN node\n");
@@ -133,7 +137,7 @@ void ZWaveDriver::Send(ZwaveParams& msg) {
   }
   destAddress_ = msg.device();
   std::this_thread::sleep_for(std::chrono::seconds(1));
-  zconnection_set_transmit_done_func(panConnection_, transmit_done_pan);
+  zconnection_set_transmit_done_func(panConnection_, TransmitDonePan);
   if (zconnection_send_async(panConnection_, binaryCommand, binaryCommandLen,
                              0)) {
     panConnectionBusy_ = true;
@@ -148,11 +152,21 @@ void ZWaveDriver::SetDefault(ZwaveParams& /*msg*/) {}
 
 void ZWaveDriver::List(ZwaveParams& /*msg*/) {}
 
-zconnection* ZWaveDriver::zip_connect(const char* remote_addr) {
+
+bool ZWaveDriver::ConnectToGateway()
+{
+  gwZipconnection_ = ZipConnect(serverIP_.c_str());
+
+  if(gwZipconnection_) return true;
+  return false;
+}
+
+
+zconnection* ZWaveDriver::ZipConnect(const char* remote_addr) {
   static uint8_t psk[] = {0x12, 0x34, 0x56, 0x78, 0x90, 0x12, 0x34, 0x56,
                           0x78, 0x90, 0x12, 0x34, 0x56, 0x78, 0x90, 0xAA};
 
-  std::cout << "ZWaveDriver::zip_connect" << std::endl;
+  std::cout << "ZWaveDriver::ZipConnect" << std::endl;
 
   if (cfgPskLen_ == 0) {
     memcpy(&cfgPsk_[0], psk, sizeof(psk));
@@ -163,20 +177,19 @@ zconnection* ZWaveDriver::zip_connect(const char* remote_addr) {
   struct zconnection* zc;
 
   zc = zclient_start(remote_addr, 41230, reinterpret_cast<char*>(&cfgPsk_[0]),
-                     cfgPskLen_, application_command_handler);
+                     cfgPskLen_, ApplicationCommandHandler);
   if (zc == 0) {
     std::cerr << "Error connecting." << std::endl;
   }
   return zc;
 }
 
-void ZWaveDriver::application_command_handler(struct zconnection* connection,
+void ZWaveDriver::ApplicationCommandHandler(struct zconnection* connection,
                                               const uint8_t* data,
                                               uint16_t datalen) {}
 
-void ZWaveDriver::transmit_done_pan(struct zconnection* zc,
+void ZWaveDriver::TransmitDonePan(struct zconnection* zc,
                                     transmission_status_code_t status) {
-
   std::cout << "ZWaveDriver::transmit_done_pan" << std::endl;
 
   switch (status) {

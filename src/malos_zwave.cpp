@@ -17,6 +17,7 @@
 
 #include <iostream>
 #include <thread>
+#include <gflags/gflags.h>
 
 #include <matrix_malos/driver_manager.h>
 
@@ -52,4 +53,7 @@ int RunServer() {
 }
 }  // namespace matrix_malos
 
-int main(int, char* []) { return matrix_malos::RunServer(); }
+int main(int argc, char *argv[]) {
+  google::ParseCommandLineFlags(&argc, &argv, true);
+  return matrix_malos::RunServer();
+}

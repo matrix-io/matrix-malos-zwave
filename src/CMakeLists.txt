@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 2.8)
 
-add_definitions(-std=gnu99)
+add_compile_options(-std=c++11)
 
 include (../cmake/FatalWarnings.cmake)
 ADM_EXTRA_WARNINGS()
@@ -46,7 +46,7 @@ include_directories(
   ${PROTOBUF_INCLUDE_DIRS})
 
 set(malos_zwave_src
-  malos_zigbee.cpp
+  malos_zwave.cpp
   driver_zwave.cpp 
   ${MALOS_PROTO_SRC}
   ${ZWAVE_COMMANDS_PROTO_SRC}
