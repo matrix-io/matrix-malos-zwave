@@ -78,4 +78,5 @@ add_executable(malos_zwave ${malos_zwave_src})
   target_link_libraries(malos_zwave ${READLINE_LIB})
   target_link_libraries(malos_zwave ${LIBXML2_LIBRARIES})
   target_link_libraries(malos_zwave ${GFLAGS_LIB})
+  target_link_libraries(malos_zwave ${MDNS_LIBS})
 

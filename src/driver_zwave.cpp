@@ -31,6 +31,7 @@ DEFINE_string(psk, "123456789012345678901234567890aa", "PSK");
 extern "C" {
 #include <zwaveip/libzwaveip.h>
 #include <zwaveip/zw_cmd_tool.h>
+#include <zwaveip/zresource.h>
 }
 
 #include "./driver_zwave.h"
@@ -49,6 +50,8 @@ namespace matrix_malos {
 
 bool ZWaveDriver::panConnectionBusy_;
 
+void ZresourceMDNSHelper() { zresource_mdns_thread_func(NULL); }
+
 ZWaveDriver::ZWaveDriver() : MalosBase(kZWaveDriverName), cfgPsk_(64) {
   SetNeedsKeepalives(true);
   SetMandatoryConfiguration(true);
@@ -56,6 +59,8 @@ ZWaveDriver::ZWaveDriver() : MalosBase(kZWaveDriverName), cfgPsk_(64) {
   panConnectionBusy_ = false;
 
   serverIP_ = FLAGS_server;
+
+  std::thread MDNSThread(ZresourceMDNSHelper);
 
   ConnectToGateway();
 }
@@ -152,15 +157,12 @@ void ZWaveDriver::SetDefault(ZwaveParams& /*msg*/) {}
 
 void ZWaveDriver::List(ZwaveParams& /*msg*/) {}
 
-
-bool ZWaveDriver::ConnectToGateway()
-{
+bool ZWaveDriver::ConnectToGateway() {
   gwZipconnection_ = ZipConnect(serverIP_.c_str());
 
-  if(gwZipconnection_) return true;
+  if (gwZipconnection_) return true;
   return false;
 }
-
 
 zconnection* ZWaveDriver::ZipConnect(const char* remote_addr) {
   static uint8_t psk[] = {0x12, 0x34, 0x56, 0x78, 0x90, 0x12, 0x34, 0x56,
@@ -185,11 +187,11 @@ zconnection* ZWaveDriver::ZipConnect(const char* remote_addr) {
 }
 
 void ZWaveDriver::ApplicationCommandHandler(struct zconnection* connection,
-                                              const uint8_t* data,
-                                              uint16_t datalen) {}
+                                            const uint8_t* data,
+                                            uint16_t datalen) {}
 
 void ZWaveDriver::TransmitDonePan(struct zconnection* zc,
-                                    transmission_status_code_t status) {
+                                  transmission_status_code_t status) {
   std::cout << "ZWaveDriver::transmit_done_pan" << std::endl;
 
   switch (status) {
