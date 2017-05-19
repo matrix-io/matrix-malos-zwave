@@ -26,13 +26,27 @@ FIND_LIBRARY(ZWAVEIP_LIB NAMES zwaveip)
 FIND_LIBRARY(ZWCMDTOOL_LIB NAMES zw_cmd_tool)
 FIND_LIBRARY(GFLAGS_LIB NAMES gflags)
 
-
 message(STATUS "ZMQ found => " "${ZMQ_LIB}")
 message(STATUS "MATRIX LIB found => " "${MATRIX_LIB}")
 message(STATUS "MATRIX ZMQ LIB found => " "${MATRIX_ZMQ_LIB}")
 message(STATUS "ZWAVEIP found => " "${ZWAVEIP_LIB}")
 message(STATUS "XML2 found =>" "${LIBXML2_LIBRARIES}")
 message(STATUS "gflags found =>" "${GFLAGS_LIB}") 
+
+FIND_LIBRARY(AVAHI_LIBRARY-COMMON NAMES avahi-common)
+FIND_LIBRARY(AVAHI_LIBRARY-CLIENT NAMES avahi-client)
+
+message(STATUS "avahi-common found =>" "${AVAHI_LIBRARY-COMMON}")
+message(STATUS "avahi-client found =>" "${AVAHI_LIBRARY-CLIENT}")
+
+if(AVAHI_LIBRARY-CLIENT)
+  message(STATUS "Enabling MDNS...")
+  message(STATUS "  avahi-common found =>" "${AVAHI_LIBRARY-COMMON}")
+  message(STATUS "  avahi-client found =>" "${AVAHI_LIBRARY-CLIENT}")
+  add_definitions(-DWITH_MDNS)
+  set(MDNS_LIBS ${AVAHI_LIBRARY-COMMON} ${AVAHI_LIBRARY-CLIENT})
+endif()
+
 
 # driver.proto
 PROTOBUF_GENERATE_CPP(MALOS_PROTO_SRC MALOS_PROTO_HEADER ../protocol-buffers/malos/driver.proto)
