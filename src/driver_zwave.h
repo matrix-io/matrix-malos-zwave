@@ -30,7 +30,6 @@ extern "C" {
 #include <zwaveip/zw_cmd_tool.h>
 }
 
-
 #include <matrix_malos/malos_base.h>
 #include "./src/driver.pb.h"
 

@@ -194,7 +194,24 @@ void ZWaveDriver::Send(ZwaveParams& msg) {
   }
 }
 
-void ZWaveDriver::AddNode(ZwaveParams& /*msg*/) { net_mgmt_learn_mode_start(); }
+void ZWaveDriver::AddNode(ZwaveParams& /*msg*/) {
+  net_mgmt_learn_mode_start();
+
+  int idx = 0;
+  static uint8_t buf[200];
+
+  const uint8_t COMMAND_CLASS_NETWORK_MANAGEMENT_INCLUSION = 0x34;
+  const uint8_t NODE_ADD = 0x01;
+
+  buf[idx++] = COMMAND_CLASS_NETWORK_MANAGEMENT_INCLUSION;
+  buf[idx++] = NODE_ADD;
+  buf[idx++] = get_unique_seq_no();
+  buf[idx++] = 0;
+  buf[idx++] = 0x07; /* ADD_NODE_S2 */
+  buf[idx++] = 0;    /* Normal power, no NWI */
+
+  zconnection_send_async(gwZipconnection_, buf, idx, 0);
+}
 
 void ZWaveDriver::RemoveNode(ZwaveParams& /*msg*/) {
   int idx = 0;
