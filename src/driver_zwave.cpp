@@ -229,7 +229,19 @@ void ZWaveDriver::RemoveNode(ZwaveParams& /*msg*/) {
   zconnection_send_async(gwZipconnection_, buf, idx, 0);
 }
 
-void ZWaveDriver::SetDefault(ZwaveParams& /*msg*/) {}
+void ZWaveDriver::SetDefault(ZwaveParams& /*msg*/) {
+  int idx = 0;
+  static uint8_t buf[200];
+
+  const uint8_t COMMAND_CLASS_NETWORK_MANAGEMENT_BASIC = 0x4D;
+  const uint8_t DEFAULT_SET = 0x06;
+
+  buf[idx++] = COMMAND_CLASS_NETWORK_MANAGEMENT_BASIC;
+  buf[idx++] = DEFAULT_SET;
+  buf[idx++] = get_unique_seq_no();
+
+  zconnection_send_async(gwZipconnection_, buf, idx, 0);
+}
 
 void ZWaveDriver::List(ZwaveParams& /*msg*/) {
   std::cout << "List of discovered Z/IP services:" << std::endl;
