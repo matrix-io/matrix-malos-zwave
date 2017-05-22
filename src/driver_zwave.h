@@ -25,8 +25,11 @@
 
 extern "C" {
 #include <zwaveip/libzwaveip.h>
+#include <zwaveip/network_management.h>
+#include <zwaveip/zresource.h>
 #include <zwaveip/zw_cmd_tool.h>
 }
+
 
 #include <matrix_malos/malos_base.h>
 #include "./src/driver.pb.h"
@@ -55,18 +58,18 @@ class ZWaveDriver : public MalosBase {
 
  private:
   zconnection* ZipConnect(const char* remote_addr);
-  static void TransmitDonePan(struct zconnection* zc,
+  static void TransmitDonePan(zconnection* zc,
                               transmission_status_code_t status);
 
-  static void ApplicationCommandHandler(struct zconnection* connection,
+  static void ApplicationCommandHandler(zconnection* connection,
                                         const uint8_t* data, uint16_t datalen);
   bool ConnectToGateway();
 
  private:
   zconnection* gwZipconnection_;
+  zconnection* panConnection_;
   std::string destAddress_;
   std::string serverIP_;
-  zconnection* panConnection_;
   static bool panConnectionBusy_;
 
   std::valarray<uint8_t> cfgPsk_;  // fixed size = 64

@@ -28,13 +28,6 @@ DEFINE_int32(port, 41230, "ZWaveIP gateway port");
 DEFINE_string(server, "::1", "ZWaveIP Gateway ");
 DEFINE_string(psk, "123456789012345678901234567890aa", "PSK");
 
-extern "C" {
-#include <zwaveip/libzwaveip.h>
-#include <zwaveip/network_management.h>
-#include <zwaveip/zresource.h>
-#include <zwaveip/zw_cmd_tool.h>
-}
-
 #include "./driver_zwave.h"
 
 #include "./src/driver.pb.h"
@@ -143,8 +136,8 @@ void ZWaveDriver::Send(ZwaveParams& msg) {
   std::string cmdName;
   std::string className;
 
-  const struct zw_command_class* pClass;
-  const struct zw_command* pCmd;
+  const zw_command_class* pClass;
+  const zw_command* pCmd;
 
   cmdName = ZWaveCommand_CmdType_Name(msg.zwave_cmd().cmd());
   className = ZWaveCommand_ClassType_Name(msg.zwave_cmd().zwclass());
@@ -205,7 +198,10 @@ void ZWaveDriver::AddNode(ZwaveParams& /*msg*/) { net_mgmt_learn_mode_start(); }
 
 void ZWaveDriver::RemoveNode(ZwaveParams& /*msg*/) {
   int idx = 0;
-  char buf[200];
+  static uint8_t buf[200];
+
+  const uint8_t COMMAND_CLASS_NETWORK_MANAGEMENT_INCLUSION = 0x34;
+  const uint8_t NODE_REMOVE = 0x03;
 
   buf[idx++] = COMMAND_CLASS_NETWORK_MANAGEMENT_INCLUSION;
   buf[idx++] = NODE_REMOVE;
@@ -244,7 +240,7 @@ zconnection* ZWaveDriver::ZipConnect(const char* remote_addr) {
     std::cerr << "PSK not configured - using default." << std::endl;
   }
 
-  struct zconnection* zc;
+  zconnection* zc;
 
   zc = zclient_start(remote_addr, 41230, reinterpret_cast<char*>(&cfgPsk_[0]),
                      cfgPskLen_, ApplicationCommandHandler);
@@ -254,11 +250,11 @@ zconnection* ZWaveDriver::ZipConnect(const char* remote_addr) {
   return zc;
 }
 
-void ZWaveDriver::ApplicationCommandHandler(struct zconnection* connection,
+void ZWaveDriver::ApplicationCommandHandler(zconnection* connection,
                                             const uint8_t* data,
                                             uint16_t datalen) {}
 
-void ZWaveDriver::TransmitDonePan(struct zconnection* zc,
+void ZWaveDriver::TransmitDonePan(zconnection* zc,
                                   transmission_status_code_t status) {
   std::cout << "ZWaveDriver::transmit_done_pan" << std::endl;
 
