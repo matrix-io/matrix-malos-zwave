@@ -30,9 +30,9 @@ DEFINE_string(psk, "123456789012345678901234567890aa", "PSK");
 
 extern "C" {
 #include <zwaveip/libzwaveip.h>
+#include <zwaveip/network_management.h>
 #include <zwaveip/zresource.h>
 #include <zwaveip/zw_cmd_tool.h>
-#include <zwaveip/network_management.h>
 }
 
 
@@ -49,50 +49,58 @@ extern "C" {
 #define SECURITY_2_AUTHENTICATED_CLASS_KEY 0x02
 #define SECURITY_2_UNAUTHENTICATED_CLASS_KEY 0x01
 
+extern "C" {
+uint8_t get_unique_seq_no(void) {
+  static uint8_t uniq_seqno = 0;
+  return uniq_seqno++;
+}
+}
 
 void net_mgmt_command_handler(union evt_handler_struct evt) {
-/*
-  switch (evt.dsk_report.type) {
-    case APPROVE_REQUESTED_KEYS: {
-      inclusion_context.requested_keys = evt.requested_keys.requested_keys;
-      inclusion_context.csa_inclusion_requested =
-          evt.requested_keys.csa_requested;
+  /*
+    switch (evt.dsk_report.type) {
+      case APPROVE_REQUESTED_KEYS: {
+        inclusion_context.requested_keys = evt.requested_keys.requested_keys;
+        inclusion_context.csa_inclusion_requested =
+            evt.requested_keys.csa_requested;
 
-      printf("The joining node requests these keys:\n\n");
-      if (evt.requested_keys.requested_keys & SECURITY_2_ACCESS_CLASS_KEY) {
-        printf(" * Security 2 Access/High Security key\n");
-      }
-      if (evt.requested_keys.requested_keys &
-          SECURITY_2_AUTHENTICATED_CLASS_KEY) {
-        printf(" * Security 2 Authenticated/Normal key\n");
-      }
-      if (evt.requested_keys.requested_keys &
-          SECURITY_2_UNAUTHENTICATED_CLASS_KEY) {
-        printf(" * Security 2 Unauthenticated/Ad-hoc key\n");
-      }
-      if (evt.requested_keys.requested_keys & SECURITY_0_NETWORK_KEY_BIT) {
-        printf(" * Security S0 key\n");
-      }
-      printf("\n");
-      if (evt.requested_keys.csa_requested) {
-        printf("and client side authentication\n");
-      }
-      printf("Enter \'grantkeys\' to accept or \'abortkeys\' to cancel.\n");
-    } break;
-    case APPROVE_DSK: {
-      printf("The joining node is reporting this device specific key:\n");
-      print_hex_string(evt.dsk_report.dsk, 16);
-      printf(
-          "Please approve by typing \'acceptdsk 12345\' where 12345 is the "
-          "first part of the DSK.\n12345 may be omitted if the device does not "
-          "require the Access or Authenticated keys.\n");
+        printf("The joining node requests these keys:\n\n");
+        if (evt.requested_keys.requested_keys & SECURITY_2_ACCESS_CLASS_KEY) {
+          printf(" * Security 2 Access/High Security key\n");
+        }
+        if (evt.requested_keys.requested_keys &
+            SECURITY_2_AUTHENTICATED_CLASS_KEY) {
+          printf(" * Security 2 Authenticated/Normal key\n");
+        }
+        if (evt.requested_keys.requested_keys &
+            SECURITY_2_UNAUTHENTICATED_CLASS_KEY) {
+          printf(" * Security 2 Unauthenticated/Ad-hoc key\n");
+        }
+        if (evt.requested_keys.requested_keys & SECURITY_0_NETWORK_KEY_BIT) {
+          printf(" * Security S0 key\n");
+        }
+        printf("\n");
+        if (evt.requested_keys.csa_requested) {
+          printf("and client side authentication\n");
+        }
+        printf("Enter \'grantkeys\' to accept or \'abortkeys\' to cancel.\n");
+      } break;
+      case APPROVE_DSK: {
+        printf("The joining node is reporting this device specific key:\n");
+        print_hex_string(evt.dsk_report.dsk, 16);
+        printf(
+            "Please approve by typing \'acceptdsk 12345\' where 12345 is the "
+            "first part of the DSK.\n12345 may be omitted if the device does not
+    "
+            "require the Access or Authenticated keys.\n");
 
-    } break;
-    default:
-      break;
-  }
-*/
+      } break;
+      default:
+        break;
+  */
 }
+
+
 
 namespace matrix_malos {
 
