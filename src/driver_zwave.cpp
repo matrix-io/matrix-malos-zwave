@@ -35,8 +35,6 @@ extern "C" {
 #include <zwaveip/zw_cmd_tool.h>
 }
 
-
-
 #include "./driver_zwave.h"
 
 #include "./src/driver.pb.h"
@@ -99,8 +97,6 @@ void net_mgmt_command_handler(union evt_handler_struct evt) {
         break;
   */
 }
-
-
 
 namespace matrix_malos {
 
@@ -207,7 +203,18 @@ void ZWaveDriver::Send(ZwaveParams& msg) {
 
 void ZWaveDriver::AddNode(ZwaveParams& /*msg*/) { net_mgmt_learn_mode_start(); }
 
-void ZWaveDriver::RemoveNode(ZwaveParams& /*msg*/) {}
+void ZWaveDriver::RemoveNode(ZwaveParams& /*msg*/) {
+  int idx = 0;
+  char buf[200];
+
+  buf[idx++] = COMMAND_CLASS_NETWORK_MANAGEMENT_INCLUSION;
+  buf[idx++] = NODE_REMOVE;
+  buf[idx++] = get_unique_seq_no();
+  buf[idx++] = 0;
+  buf[idx++] = 0x01; /* REMOVE_NODE_ANY */
+
+  zconnection_send_async(gwZipconnection_, buf, idx, 0);
+}
 
 void ZWaveDriver::SetDefault(ZwaveParams& /*msg*/) {}
 
