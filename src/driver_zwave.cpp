@@ -30,8 +30,8 @@ DEFINE_string(psk, "123456789012345678901234567890aa", "PSK");
 
 extern "C" {
 #include <zwaveip/libzwaveip.h>
-#include <zwaveip/zw_cmd_tool.h>
 #include <zwaveip/zresource.h>
+#include <zwaveip/zw_cmd_tool.h>
 }
 
 #include "./driver_zwave.h"
@@ -155,7 +155,12 @@ void ZWaveDriver::RemoveNode(ZwaveParams& /*msg*/) {}
 
 void ZWaveDriver::SetDefault(ZwaveParams& /*msg*/) {}
 
-void ZWaveDriver::List(ZwaveParams& /*msg*/) {}
+void ZWaveDriver::List(ZwaveParams& /*msg*/) {
+  std::cout << "List of discovered Z/IP services:" << std::endl;
+  for (zip_service* n = zresource_get(); n; n = n->next) {
+    std::cout << n->host_name << " " << n->service_name;
+  }
+}
 
 bool ZWaveDriver::ConnectToGateway() {
   gwZipconnection_ = ZipConnect(serverIP_.c_str());

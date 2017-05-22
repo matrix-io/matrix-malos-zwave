@@ -35,7 +35,6 @@ const char kZWaveDriverName[] = "ZWave";
 
 namespace matrix_malos {
 
-
 class ZWaveDriver : public MalosBase {
  public:
   ZWaveDriver();
@@ -55,13 +54,12 @@ class ZWaveDriver : public MalosBase {
   void List(ZwaveParams& msg);
 
  private:
-  zconnection*  ZipConnect(const char* remote_addr);
+  zconnection* ZipConnect(const char* remote_addr);
   static void TransmitDonePan(struct zconnection* zc,
-                                transmission_status_code_t status);
+                              transmission_status_code_t status);
 
   static void ApplicationCommandHandler(struct zconnection* connection,
-                                          const uint8_t* data,
-                                          uint16_t datalen);
+                                        const uint8_t* data, uint16_t datalen);
   bool ConnectToGateway();
 
  private:

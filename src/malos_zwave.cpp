@@ -15,9 +15,9 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <gflags/gflags.h>
 #include <iostream>
 #include <thread>
-#include <gflags/gflags.h>
 
 #include <matrix_malos/driver_manager.h>
 
