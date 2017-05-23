@@ -26,6 +26,7 @@
 extern "C" {
 #include <zwaveip/libzwaveip.h>
 #include <zwaveip/network_management.h>
+#include <zwaveip/parse_xml.h>
 #include <zwaveip/zresource.h>
 #include <zwaveip/zw_cmd_tool.h>
 }

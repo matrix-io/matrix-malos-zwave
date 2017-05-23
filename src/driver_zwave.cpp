@@ -84,8 +84,7 @@ void net_mgmt_command_handler(union evt_handler_struct evt) {
       std::cout
           << "Please approve by typing \'acceptdsk 12345\' where 12345 is the "
              "first part of the DSK.\n12345 may be omitted if the device does "
-             "not "
-             "require the Access or Authenticated keys."
+             "not require the Access or Authenticated keys."
           << std::endl;
 
     } break;
@@ -287,7 +286,33 @@ zconnection* ZWaveDriver::ZipConnect(const char* remote_addr) {
 
 void ZWaveDriver::ApplicationCommandHandler(zconnection* connection,
                                             const uint8_t* data,
-                                            uint16_t datalen) {}
+                                            uint16_t datalen) {
+  int i;
+  int len;
+  const uint8_t COMMAND_CLASS_NETWORK_MANAGEMENT_INCLUSION = 0x34;
+
+  unsigned char cmd_classes[400][MAX_LEN_CMD_CLASS_NAME];
+  std::cout << "ApplicationCommandHandler." << std::endl;
+
+  //  print_hex_string(data, datalen);
+  switch (data[0]) {
+    case COMMAND_CLASS_NETWORK_MANAGEMENT_INCLUSION:
+      parse_network_mgmt_inclusion_packet(data, datalen);
+      break;
+
+    default:
+      memset(cmd_classes, 0, sizeof(cmd_classes));
+      /* decode() clobbers data - but we are not using it afterwards, hence the
+       * typecast */
+      decode((uint8_t*)data, datalen, cmd_classes, &len);
+      std::cout << std::endl;
+      for (i = 0; i < len; i++) {
+        std::cout << cmd_classes[i] << std::endl;
+      }
+      std::cout << std::endl;
+      break;
+  }
+}
 
 void ZWaveDriver::TransmitDonePan(zconnection* zc,
                                   transmission_status_code_t status) {
