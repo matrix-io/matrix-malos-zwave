@@ -108,6 +108,10 @@ ZWaveDriver::ZWaveDriver() : MalosBase(kZWaveDriverName), cfgPsk_(64) {
   panConnectionBusy_ = false;
 
   serverIP_ = FLAGS_server;
+  std::cout << "serverIP : " << serverIP_ << std::endl;
+
+  ParsePsk(FLAGS_psk.c_str());
+  std::cout << "FLAGS_psk : " << FLAGS_psk << std::endl;
 
   std::thread MDNSThread(ZresourceMDNSHelper);
 
@@ -263,15 +267,10 @@ bool ZWaveDriver::ConnectToGateway() {
 }
 
 zconnection* ZWaveDriver::ZipConnect(const char* remote_addr) {
-  static uint8_t psk[] = {0x12, 0x34, 0x56, 0x78, 0x90, 0x12, 0x34, 0x56,
-                          0x78, 0x90, 0x12, 0x34, 0x56, 0x78, 0x90, 0xAA};
-
-  std::cout << "ZWaveDriver::ZipConnect" << std::endl;
-
   if (cfgPskLen_ == 0) {
-    memcpy(&cfgPsk_[0], psk, sizeof(psk));
-    cfgPskLen_ = sizeof(psk);
-    std::cerr << "PSK not configured - using default." << std::endl;
+    std::cerr << "PSK not configured - unable to connect to " << remote_addr
+              << std::endl;
+    return 0;
   }
 
   zconnection* zc;
@@ -279,7 +278,9 @@ zconnection* ZWaveDriver::ZipConnect(const char* remote_addr) {
   zc = zclient_start(remote_addr, 41230, reinterpret_cast<char*>(&cfgPsk_[0]),
                      cfgPskLen_, ApplicationCommandHandler);
   if (zc == 0) {
-    std::cerr << "Error connecting." << std::endl;
+    std::cout << "Error connecting to " << remote_addr << std::endl;
+  } else {
+    std::cout << "ZWaveDriver connected to " << remote_addr << std::endl;
   }
   return zc;
 }
@@ -329,6 +330,34 @@ void ZWaveDriver::TransmitDonePan(zconnection* zc,
       break;
   }
   ZWaveDriver::panConnectionBusy_ = false;
+}
+
+static int hex2int(char c) {
+  if (c >= '0' && c <= '9') {
+    return c - '0';
+  } else if (c >= 'a' && c <= 'f') {
+    return c - 'a' + 0xa;
+  } else if (c >= 'A' && c <= 'F') {
+    return c - 'A' + 0xa;
+  } else {
+    return -1;
+  }
+}
+
+void ZWaveDriver::ParsePsk(const char* psk) {
+  int val;
+  cfgPskLen_ = 0;
+  const char* s = psk;
+  while (*s && cfgPskLen_ < cfgPsk_.size()) {
+    val = hex2int(*s++);
+    if (val < 0) break;
+    cfgPsk_[cfgPskLen_] = ((val)&0xf) << 4;
+    val = hex2int(*s++);
+    if (val < 0) break;
+    cfgPsk_[cfgPskLen_] |= (val & 0xf);
+    cfgPskLen_++;
+  }
+  std::cout << std::endl;
 }
 
 }  // namespace matrix_malos

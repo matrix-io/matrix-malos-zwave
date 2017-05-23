@@ -20,6 +20,7 @@
 #include <thread>
 
 #include <matrix_malos/driver_manager.h>
+#include "./driver_zwave.h"
 
 #include "./src/driver.pb.h"
 
@@ -40,15 +41,14 @@ int RunServer() {
                    std::to_string(kBasePort)
             << "." << std::endl;
 
-  /*
-    ZigbeeDriver driver_zigbee;
-    if (!driver_zigbee.Init(kBasePort + 1, kUnsecureBindScope)) {
-      return 1;
-    }
-    driver_manager.RegisterDriver(&driver_zigbee);
+  ZWaveDriver driver_zwave;
+  if (!driver_zwave.Init(kBasePort + 1, kUnsecureBindScope)) {
+    return 1;
+  }
+  driver_manager.RegisterDriver(&driver_zwave);
 
-    driver_manager.ServeInfoRequestsForEver();
-  */
+  driver_manager.ServeInfoRequestsForEver();
+
   return 0;  // Never reached.
 }
 }  // namespace matrix_malos

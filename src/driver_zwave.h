@@ -65,6 +65,8 @@ class ZWaveDriver : public MalosBase {
                                         const uint8_t* data, uint16_t datalen);
   bool ConnectToGateway();
 
+  void ParsePsk(const char* psk);
+
  public:
   static bool panConnectionBusy_;
   static uint8_t requestedKeys_;
