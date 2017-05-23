@@ -48,52 +48,57 @@ uint8_t get_unique_seq_no(void) {
 }
 
 void net_mgmt_command_handler(union evt_handler_struct evt) {
-  /*
-    switch (evt.dsk_report.type) {
-      case APPROVE_REQUESTED_KEYS: {
-        inclusion_context.requested_keys = evt.requested_keys.requested_keys;
-        inclusion_context.csa_inclusion_requested =
-            evt.requested_keys.csa_requested;
+  switch (evt.dsk_report.type) {
+    case APPROVE_REQUESTED_KEYS: {
+      matrix_malos::ZWaveDriver::requestedKeys_ =
+          evt.requested_keys.requested_keys;
+      matrix_malos::ZWaveDriver::csaInclusionRequested_ =
+          evt.requested_keys.csa_requested;
 
-        printf("The joining node requests these keys:\n\n");
-        if (evt.requested_keys.requested_keys & SECURITY_2_ACCESS_CLASS_KEY) {
-          printf(" * Security 2 Access/High Security key\n");
-        }
-        if (evt.requested_keys.requested_keys &
-            SECURITY_2_AUTHENTICATED_CLASS_KEY) {
-          printf(" * Security 2 Authenticated/Normal key\n");
-        }
-        if (evt.requested_keys.requested_keys &
-            SECURITY_2_UNAUTHENTICATED_CLASS_KEY) {
-          printf(" * Security 2 Unauthenticated/Ad-hoc key\n");
-        }
-        if (evt.requested_keys.requested_keys & SECURITY_0_NETWORK_KEY_BIT) {
-          printf(" * Security S0 key\n");
-        }
-        printf("\n");
-        if (evt.requested_keys.csa_requested) {
-          printf("and client side authentication\n");
-        }
-        printf("Enter \'grantkeys\' to accept or \'abortkeys\' to cancel.\n");
-      } break;
-      case APPROVE_DSK: {
-        printf("The joining node is reporting this device specific key:\n");
-        print_hex_string(evt.dsk_report.dsk, 16);
-        printf(
-            "Please approve by typing \'acceptdsk 12345\' where 12345 is the "
-            "first part of the DSK.\n12345 may be omitted if the device does not
-    "
-            "require the Access or Authenticated keys.\n");
+      std::cout << "The joining node requests these keys:\n" << std::endl;
+      if (evt.requested_keys.requested_keys & SECURITY_2_ACCESS_CLASS_KEY) {
+        std::cout << " * Security 2 Access/High Security key" << std::endl;
+      }
+      if (evt.requested_keys.requested_keys &
+          SECURITY_2_AUTHENTICATED_CLASS_KEY) {
+        std::cout << " * Security 2 Authenticated/Normal key" << std::endl;
+      }
+      if (evt.requested_keys.requested_keys &
+          SECURITY_2_UNAUTHENTICATED_CLASS_KEY) {
+        std::cout << " * Security 2 Unauthenticated/Ad-hoc key" << std::endl;
+      }
+      if (evt.requested_keys.requested_keys & SECURITY_0_NETWORK_KEY_BIT) {
+        std::cout << " * Security S0 key" << std::endl;
+      }
+      std::cout << "" << std::endl;
+      if (evt.requested_keys.csa_requested) {
+        std::cout << "and client side authentication" << std::endl;
+      }
+      std::cout << "Enter \'grantkeys\' to accept or \'abortkeys\' to cancel."
+                << std::endl;
+    } break;
+    case APPROVE_DSK: {
+      std::cout << "The joining node is reporting this device specific key:"
+                << std::endl;
+      // print_hex_string(evt.dsk_report.dsk, 16);
+      std::cout
+          << "Please approve by typing \'acceptdsk 12345\' where 12345 is the "
+             "first part of the DSK.\n12345 may be omitted if the device does "
+             "not "
+             "require the Access or Authenticated keys."
+          << std::endl;
 
-      } break;
-      default:
-        break;
-  */
+    } break;
+    default:
+      break;
+  }
 }
-
 namespace matrix_malos {
 
+/* Static members of ZWaveDriver class */
 bool ZWaveDriver::panConnectionBusy_;
+uint8_t ZWaveDriver::requestedKeys_;
+uint8_t ZWaveDriver::csaInclusionRequested_;
 
 void ZresourceMDNSHelper() { zresource_mdns_thread_func(NULL); }
 
@@ -175,13 +180,14 @@ void ZWaveDriver::Send(ZwaveParams& msg) {
       zclient_stop(panConnection_);
       panConnection_ = NULL;
     }
-    // FIXME: Use thread synchronization instead of sleep to avoid "Socket Read
+    // FIXME: Use thread synchronization instead of sleep to avoid "Socket
+    // Read
     // Error"
     std::this_thread::sleep_for(std::chrono::seconds(1));
     panConnection_ = ZipConnect(msg.device().c_str());
   }
   if (!panConnection_) {
-    fprintf(stderr, "Failed to connect to PAN node\n");
+    std::cerr << "Failed to connect to PAN node" << std::endl;
     destAddress_[0] = 0;
     return;
   }

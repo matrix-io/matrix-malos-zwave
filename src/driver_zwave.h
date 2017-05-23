@@ -64,12 +64,16 @@ class ZWaveDriver : public MalosBase {
                                         const uint8_t* data, uint16_t datalen);
   bool ConnectToGateway();
 
+ public:
+  static bool panConnectionBusy_;
+  static uint8_t requestedKeys_;
+  static uint8_t csaInclusionRequested_;
+
  private:
   zconnection* gwZipconnection_;
   zconnection* panConnection_;
   std::string destAddress_;
   std::string serverIP_;
-  static bool panConnectionBusy_;
 
   std::valarray<uint8_t> cfgPsk_;  // fixed size = 64
   uint8_t cfgPskLen_;
