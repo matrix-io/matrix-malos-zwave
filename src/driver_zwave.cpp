@@ -92,6 +92,20 @@ void net_mgmt_command_handler(union evt_handler_struct evt) {
       break;
   }
 }
+
+void transmit_done(struct zconnection* zc, transmission_status_code_t status) {
+  switch (status) {
+    case TRANSMIT_OK:
+      break;
+    case TRANSMIT_NOT_OK:
+      std::cout << "\nTransmit failed\n";
+      break;
+    case TRANSMIT_TIMEOUT:
+      std::cout << "\nTransmit attempt timed out\n";
+      break;
+  }
+}
+
 namespace matrix_malos {
 
 /* Static members of ZWaveDriver class */
@@ -116,6 +130,13 @@ ZWaveDriver::ZWaveDriver() : MalosBase(kZWaveDriverName), cfgPsk_(64) {
   std::thread MDNSThread(ZresourceMDNSHelper);
 
   ConnectToGateway();
+
+  zconnection_set_transmit_done_func(gwZipconnection_, transmit_done);
+
+  requestedKeys_ = 0;
+  csaInclusionRequested_ = 0;
+
+  net_mgmt_init(gwZipconnection_);
 }
 
 // ZwaveParams_ZwaveOperations i;
