@@ -27,6 +27,7 @@
 DEFINE_int32(port, 41230, "ZWaveIP gateway port");
 DEFINE_string(server, "::1", "ZWaveIP Gateway ");
 DEFINE_string(psk, "123456789012345678901234567890aa", "PSK");
+DEFINE_string(xml, "ZWave_custom_cmd_classes.xml", "XML zwave classes");
 
 #include "./driver_zwave.h"
 
@@ -115,19 +116,24 @@ uint8_t ZWaveDriver::csaInclusionRequested_;
 
 void ZresourceMDNSHelper() { zresource_mdns_thread_func(NULL); }
 
-ZWaveDriver::ZWaveDriver() : MalosBase(kZWaveDriverName), cfgPsk_(64) {
+ZWaveDriver::ZWaveDriver()
+    : MalosBase(kZWaveDriverName),
+      MDNSThread_(ZresourceMDNSHelper),
+      cfgPsk_(64) {
   SetNeedsKeepalives(true);
   SetMandatoryConfiguration(true);
   SetNotesForHuman("ZWave Driver v1.0");
   panConnectionBusy_ = false;
 
   serverIP_ = FLAGS_server;
-  std::cout << "serverIP : " << serverIP_ << std::endl;
 
   ParsePsk(FLAGS_psk.c_str());
   std::cout << "FLAGS_psk : " << FLAGS_psk << std::endl;
 
-  std::thread MDNSThread(ZresourceMDNSHelper);
+  if (!initialize_xml(FLAGS_xml.c_str())) {
+    std::cerr << "Could not load Command Class definitions" << std::endl;
+    return;
+  }
 
   ConnectToGateway();
 
@@ -306,6 +312,18 @@ zconnection* ZWaveDriver::ZipConnect(const char* remote_addr) {
   return zc;
 }
 
+void print_hex_string(const uint8_t* data, unsigned int datalen) {
+  unsigned int i;
+
+  for (i = 0; i < datalen; i++) {
+    std::cout << " " << std::hex << int(data[i]);
+    if ((i & 0xf) == 0xf) {
+      std::cout << std::endl;
+    }
+  }
+  std::cout.flush();
+}
+
 void ZWaveDriver::ApplicationCommandHandler(zconnection* connection,
                                             const uint8_t* data,
                                             uint16_t datalen) {
@@ -314,15 +332,24 @@ void ZWaveDriver::ApplicationCommandHandler(zconnection* connection,
   const uint8_t COMMAND_CLASS_NETWORK_MANAGEMENT_INCLUSION = 0x34;
 
   unsigned char cmd_classes[400][MAX_LEN_CMD_CLASS_NAME];
-  std::cout << "ApplicationCommandHandler." << std::endl;
+  std::cout << "ApplicationCommandHandler datalen=" << datalen << std::endl;
 
-  //  print_hex_string(data, datalen);
+  print_hex_string(data, datalen);
+
+  std::cout << "-0\n";
+  std::cout.flush();
+
   switch (data[0]) {
     case COMMAND_CLASS_NETWORK_MANAGEMENT_INCLUSION:
+      std::cout << "-1\n";
+      std::cout.flush();
       parse_network_mgmt_inclusion_packet(data, datalen);
       break;
 
     default:
+      std::cout << "-2\n";
+      std::cout.flush();
+
       memset(cmd_classes, 0, sizeof(cmd_classes));
       /* decode() clobbers data - but we are not using it afterwards, hence the
        * typecast */

@@ -22,6 +22,7 @@
 
 #include <memory>
 #include <valarray>
+#include <thread>
 
 extern "C" {
 #include <zwaveip/libzwaveip.h>
@@ -73,6 +74,7 @@ class ZWaveDriver : public MalosBase {
   static uint8_t csaInclusionRequested_;
 
  private:
+  std::thread MDNSThread_;
   zconnection* gwZipconnection_;
   zconnection* panConnection_;
   std::string destAddress_;
