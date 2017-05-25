@@ -16,7 +16,9 @@
  */
 
 #include <fstream>
+#include <iostream>
 #include <set>
+#include <map>
 #include <string>
 #include <valarray>
 
@@ -36,7 +38,10 @@ int main(int argc, char* argv[]) {
   os << "package matrix_malos;" << std::endl << std::endl;
 
   std::valarray<const char*> names(512);
+
   std::set<std::string> class_names;
+  std::map<std::string, int> class_id;
+
   std::set<std::string> cmd_names;
 
   int number_of_classes = zw_cmd_tool_get_command_class_names(&names[0]);
@@ -47,11 +52,11 @@ int main(int argc, char* argv[]) {
   }
 
   for (auto& class_name : class_names) {
-    const zw_command_class* p_class_class =
+    const zw_command_class* p_cmd_class =
         zw_cmd_tool_get_class_by_name(class_name.c_str());
 
-    int number_of_commands =
-        zw_cmd_tool_get_cmd_names(p_class_class, &names[0]);
+    class_id[p_cmd_class->name] = p_cmd_class->cmd_class_number;
+    int number_of_commands = zw_cmd_tool_get_cmd_names(p_cmd_class, &names[0]);
 
     for (auto& cmd_name : std::valarray<const char*>(
              names[std::slice(0, number_of_commands, 1)])) {
@@ -64,16 +69,17 @@ int main(int argc, char* argv[]) {
   /* enum ClassType */
   int class_index = 0;
   os << " enum ClassType {" << std::endl;
-  os << "  COMMAND_CLASS_UNDEFINED = 0;" << std::endl;
+  os << "  COMMAND_CLASS_UNDEFINED = 9999;" << std::endl;
   for (auto& class_name : class_names) {
-    os << "  " << class_name << " = " << ++class_index << ";" << std::endl;
+    os << "  " << class_name << " = " << class_id[class_name] << ";"
+       << std::endl;
   }
   os << "  }" << std::endl << std::endl;
 
   /* enum CmdType */
   int cmd_index = 0;
   os << " enum CmdType {" << std::endl;
-  os << "  CMD_UNDEFINED = 0;" << std::endl;
+  os << "  CMD_UNDEFINED = 9999;" << std::endl;
   for (auto& cmd_name : cmd_names) {
     os << "  " << cmd_name << " = " << ++cmd_index << ";" << std::endl;
   }
