@@ -282,8 +282,9 @@ void ZWaveDriver::SetDefault(ZwaveParams& /*msg*/) {
 void ZWaveDriver::List(ZwaveParams& /*msg*/) {
   std::cout << "List of discovered Z/IP services:" << std::endl;
   for (zip_service* n = zresource_get(); n; n = n->next) {
-    std::cout << n->host_name << " " << n->service_name
-              << " infolen=" << n->infolen << std::endl;
+    std::cout << " host_name:    " << n->host_name << std::endl;
+    std::cout << " service_name: " << n->service_name << std::endl;
+    std::cout << " infolen: " << n->infolen << std::endl;
     std::cout << " info: " << std::endl;
     for (int i = 0; i < n->infolen; i++)
       std::cout << " " << std::hex << (int)n->info[i] << std::endl;
