@@ -284,10 +284,26 @@ void ZWaveDriver::List(ZwaveParams& /*msg*/) {
   for (zip_service* n = zresource_get(); n; n = n->next) {
     std::cout << " host_name:    " << n->host_name << std::endl;
     std::cout << " service_name: " << n->service_name << std::endl;
-    std::cout << " infolen: " << n->infolen << std::endl;
+    std::cout << " infolen: " << std::dec << n->infolen << std::endl;
     std::cout << " info: " << std::endl;
-    for (int i = 0; i < n->infolen; i++)
-      std::cout << " " << std::hex << (int)n->info[i] << std::endl;
+
+    for (int i = 0; i < n->infolen; i++) {
+      if (ZWaveCommand_ClassType_IsValid(n->info[i])) {
+        const std::string& className = ZWaveCommand_ClassType_Name(
+            static_cast<ZWaveCommand_ClassType>(n->info[i]));
+
+        ZWaveCommand_ClassType zwaveClassType;
+        ZWaveCommand_ClassType_Parse(className, &zwaveClassType);
+
+        std::cout << "  " << std::hex << (int)n->info[i] << " " << className
+                  << std::endl;
+      } else {
+        std::cout << "  " << std::hex << static_cast<int>(n->info[i])
+                  << " not found in the ZWaveCommand_ClassType enum."
+                  << std::endl;
+      }
+    }
+    std::cout << std::endl;
   }
 }
 
