@@ -38,10 +38,8 @@ int main(int argc, char* argv[]) {
   os << "package matrix_malos;" << std::endl << std::endl;
 
   std::valarray<const char*> names(512);
-
   std::set<std::string> class_names;
-  std::map<std::string, int> class_id;
-
+  std::multimap<int, std::string> class_id;
   std::set<std::string> cmd_names;
 
   int number_of_classes = zw_cmd_tool_get_command_class_names(&names[0]);
@@ -55,7 +53,8 @@ int main(int argc, char* argv[]) {
     const zw_command_class* p_cmd_class =
         zw_cmd_tool_get_class_by_name(class_name.c_str());
 
-    class_id[p_cmd_class->name] = p_cmd_class->cmd_class_number;
+    class_id.insert(std::pair<int, std::string>(p_cmd_class->cmd_class_number,
+                                                p_cmd_class->name));
     int number_of_commands = zw_cmd_tool_get_cmd_names(p_cmd_class, &names[0]);
 
     for (auto& cmd_name : std::valarray<const char*>(
@@ -67,11 +66,10 @@ int main(int argc, char* argv[]) {
   os << "message ZWaveCommand {" << std::endl;
 
   /* enum ClassType */
-  int class_index = 0;
   os << " enum ClassType {" << std::endl;
-  os << "  COMMAND_CLASS_UNDEFINED = 9999;" << std::endl;
-  for (auto& class_name : class_names) {
-    os << "  " << class_name << " = " << class_id[class_name] << ";"
+  os << "  option allow_alias = true;" << std::endl;
+  for (std::pair<int, std::string> cmd_class : class_id) {
+    os << "  " << cmd_class.second << " = " << cmd_class.first << ";"
        << std::endl;
   }
   os << "  }" << std::endl << std::endl;
@@ -79,7 +77,7 @@ int main(int argc, char* argv[]) {
   /* enum CmdType */
   int cmd_index = 0;
   os << " enum CmdType {" << std::endl;
-  os << "  CMD_UNDEFINED = 9999;" << std::endl;
+  os << "  CMD_UNDEFINED = 0;" << std::endl;
   for (auto& cmd_name : cmd_names) {
     os << "  " << cmd_name << " = " << ++cmd_index << ";" << std::endl;
   }
