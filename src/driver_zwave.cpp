@@ -174,8 +174,8 @@ void ZWaveDriver::Send(ZwaveParams& msg) {
   const zw_command_class* pClass;
   const zw_command* pCmd;
 
-  cmdName = ZWaveCommand_CmdType_Name(msg.zwave_cmd().cmd());
-  className = ZWaveCommand_ClassType_Name(msg.zwave_cmd().zwclass());
+  cmdName = ZwaveCmdType_Name(msg.zwave_cmd().cmd());
+  className = ZwaveClassType_Name(msg.zwave_cmd().zwclass());
 
   pClass = zw_cmd_tool_get_class_by_name(className.c_str());
   pCmd = zw_cmd_tool_get_cmd_by_name(pClass, cmdName.c_str());
@@ -288,18 +288,18 @@ void ZWaveDriver::List(ZwaveParams& /*msg*/) {
     std::cout << " info: " << std::endl;
 
     for (int i = 0; i < n->infolen; i++) {
-      if (ZWaveCommand_ClassType_IsValid(n->info[i])) {
-        const std::string& className = ZWaveCommand_ClassType_Name(
-            static_cast<ZWaveCommand_ClassType>(n->info[i]));
+      if (ZwaveClassType_IsValid(n->info[i])) {
+        const std::string& className = ZwaveClassType_Name(
+            static_cast<ZwaveClassType>(n->info[i]));
 
-        ZWaveCommand_ClassType zwaveClassType;
-        ZWaveCommand_ClassType_Parse(className, &zwaveClassType);
+        ZwaveClassType zwaveClassType;
+        ZwaveClassType_Parse(className, &zwaveClassType);
 
         std::cout << "  " << std::hex << (int)n->info[i] << " " << className
                   << std::endl;
       } else {
         std::cout << "  " << std::hex << static_cast<int>(n->info[i])
-                  << " not found in the ZWaveCommand_ClassType enum."
+                  << " not found in the ZwaveClassType enum."
                   << std::endl;
       }
     }
@@ -357,27 +357,20 @@ void ZWaveDriver::ApplicationCommandHandler(zconnection* connection,
 
   print_hex_string(data, datalen);
 
-  std::cout << "-0\n";
-  std::cout.flush();
 
   switch (data[0]) {
     case COMMAND_CLASS_NETWORK_MANAGEMENT_INCLUSION:
-      std::cout << "-1\n";
-      std::cout.flush();
       parse_network_mgmt_inclusion_packet(data, datalen);
       break;
 
     default:
-      std::cout << "-2\n";
-      std::cout.flush();
-
       memset(cmd_classes, 0, sizeof(cmd_classes));
       /* decode() clobbers data - but we are not using it afterwards, hence the
        * typecast */
       decode((uint8_t*)data, datalen, cmd_classes, &len);
       std::cout << std::endl;
       for (i = 0; i < len; i++) {
-        std::cout << cmd_classes[i] << std::endl;
+        std::cout <<  " +++ " << cmd_classes[i] << std::endl;
       }
       std::cout << std::endl;
       break;

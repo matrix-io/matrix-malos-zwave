@@ -63,30 +63,28 @@ int main(int argc, char* argv[]) {
     }
   }
 
-  os << "message ZWaveCommand {" << std::endl;
-
-  /* enum ClassType */
-  os << " enum ClassType {" << std::endl;
-  os << "  option allow_alias = true;" << std::endl;
+  /* enum ZwaveClassType */
+  os << "enum ZwaveClassType {" << std::endl;
+  os << " option allow_alias = true;" << std::endl;
   for (std::pair<int, std::string> cmd_class : class_id) {
-    os << "  " << cmd_class.second << " = " << cmd_class.first << ";"
+    os << " " << cmd_class.second << " = " << cmd_class.first << ";"
        << std::endl;
   }
-  os << "  }" << std::endl << std::endl;
+  os << "}" << std::endl << std::endl;
 
-  /* enum CmdType */
+  /* enum ZwaveCmdType */
   int cmd_index = 0;
-  os << " enum CmdType {" << std::endl;
-  os << "  CMD_UNDEFINED = 0;" << std::endl;
+  os << "enum ZwaveCmdType {" << std::endl;
+  os << " CMD_UNDEFINED = 0;" << std::endl;
   for (auto& cmd_name : cmd_names) {
-    os << "  " << cmd_name << " = " << ++cmd_index << ";" << std::endl;
+    os << " " << cmd_name << " = " << ++cmd_index << ";" << std::endl;
   }
-  os << "  }" << std::endl << std::endl;
+  os << "}" << std::endl << std::endl;
 
-  os << " ClassType zwclass = 1;" << std::endl;
-  os << " CmdType cmd = 2;" << std::endl;
+  os << "message ZWaveCommand {" << std::endl;
+  os << " ZwaveClassType zwclass = 1;" << std::endl;
+  os << " ZwaveCmdType cmd = 2;" << std::endl;
   os << " bytes params = 3;" << std::endl;
-
   os << "}" << std::endl;
 
   os.close();
