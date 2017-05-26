@@ -4,6 +4,7 @@
  * This file is part of MATRIX Creator MALOS
  *
  * Author: Andres Calderon <andres.calderon@admobilize.com>
+ *         github.com/eljuguetero
  *
  * MATRIX Creator MALOS is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -51,11 +52,11 @@ class ZWaveDriver : public MalosBase {
 
  private:
   // MALOS exposed methods
-  void Send(ZwaveParams& msg);
-  void AddNode(ZwaveParams& msg);
-  void RemoveNode(ZwaveParams& msg);
-  void SetDefault(ZwaveParams& msg);
-  void List(ZwaveParams& msg);
+  void Send(ZwaveMsg& msg);
+  void AddNode(ZwaveMsg& msg);
+  void RemoveNode(ZwaveMsg& msg);
+  void SetDefault(ZwaveMsg& msg);
+  void List(ZwaveMsg& msg);
 
  private:
   zconnection* ZipConnect(const char* remote_addr);
