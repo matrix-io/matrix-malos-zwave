@@ -53,10 +53,10 @@ class ZWaveDriver : public MalosBase {
  private:
   // MALOS exposed methods
   void Send(ZwaveMsg& msg);
-  void AddNode(ZwaveMsg& msg);
-  void RemoveNode(ZwaveMsg& msg);
-  void SetDefault(ZwaveMsg& msg);
-  void List(ZwaveMsg& msg);
+  void AddNode();
+  void RemoveNode();
+  void SetDefault();
+  void List();
 
  private:
   zconnection* ZipConnect(const char* remote_addr);
@@ -73,6 +73,8 @@ class ZWaveDriver : public MalosBase {
   static bool panConnectionBusy_;
   static uint8_t requestedKeys_;
   static uint8_t csaInclusionRequested_;
+  // workaround for C callback compatibility
+  static ZmqPusher* static_zqm_push_update_;
 
  private:
   std::thread MDNSThread_;

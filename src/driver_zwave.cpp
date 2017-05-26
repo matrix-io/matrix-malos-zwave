@@ -95,339 +95,358 @@ void net_mgmt_command_handler(union evt_handler_struct evt) {
         break;
     }
   }
+}
 
-  void transmit_done(struct zconnection* /*zc*/,
-                     transmission_status_code_t status) {
-    switch (status) {
-      case TRANSMIT_OK:
-        break;
-      case TRANSMIT_NOT_OK:
-        std::cout << "\nTransmit failed\n";
-        break;
-      case TRANSMIT_TIMEOUT:
-        std::cout << "\nTransmit attempt timed out\n";
-        break;
-    }
+void transmit_done(zconnection* /*zc*/, transmission_status_code_t status) {
+  switch (status) {
+    case TRANSMIT_OK:
+      break;
+    case TRANSMIT_NOT_OK:
+      std::cout << "\nTransmit failed\n";
+      break;
+    case TRANSMIT_TIMEOUT:
+      std::cout << "\nTransmit attempt timed out\n";
+      break;
+  }
+}
+
+namespace matrix_malos {
+
+/* Static members of ZWaveDriver class */
+bool ZWaveDriver::panConnectionBusy_;
+uint8_t ZWaveDriver::requestedKeys_;
+uint8_t ZWaveDriver::csaInclusionRequested_;
+ZmqPusher* ZWaveDriver::static_zqm_push_update_;
+
+void ZresourceMDNSHelper() { zresource_mdns_thread_func(NULL); }
+
+ZWaveDriver::ZWaveDriver()
+    : MalosBase(kZWaveDriverName),
+      MDNSThread_(ZresourceMDNSHelper),
+      cfgPsk_(64) {
+  SetNeedsKeepalives(true);
+  SetMandatoryConfiguration(true);
+  SetNotesForHuman("ZWave Driver v1.0");
+  panConnectionBusy_ = false;
+
+  serverIP_ = FLAGS_server;
+
+  ParsePsk(FLAGS_psk.c_str());
+  std::cout << "FLAGS_psk : " << FLAGS_psk << std::endl;
+
+  if (!initialize_xml(FLAGS_xml.c_str())) {
+    std::cerr << "Could not load Command Class definitions" << std::endl;
+    return;
   }
 
-  namespace matrix_malos {
+  ConnectToGateway();
 
-  /* Static members of ZWaveDriver class */
-  bool ZWaveDriver::panConnectionBusy_;
-  uint8_t ZWaveDriver::requestedKeys_;
-  uint8_t ZWaveDriver::csaInclusionRequested_;
+  zconnection_set_transmit_done_func(gwZipconnection_, transmit_done);
 
-  void ZresourceMDNSHelper() { zresource_mdns_thread_func(NULL); }
+  requestedKeys_ = 0;
+  csaInclusionRequested_ = 0;
+  net_mgmt_init(gwZipconnection_);
+}
 
-  ZWaveDriver::ZWaveDriver()
-      : MalosBase(kZWaveDriverName),
-        MDNSThread_(ZresourceMDNSHelper),
-        cfgPsk_(64) {
-    SetNeedsKeepalives(true);
-    SetMandatoryConfiguration(true);
-    SetNotesForHuman("ZWave Driver v1.0");
-    panConnectionBusy_ = false;
+// ZwaveMsg_ZwaveOperations i;
 
-    serverIP_ = FLAGS_server;
+bool ZWaveDriver::ProcessConfig(const DriverConfig& config) {
+  ZwaveMsg zwave(config.zwave());
 
-    ParsePsk(FLAGS_psk.c_str());
-    std::cout << "FLAGS_psk : " << FLAGS_psk << std::endl;
+  static_zqm_push_update_ = zqm_push_update_.get();
 
-    if (!initialize_xml(FLAGS_xml.c_str())) {
-      std::cerr << "Could not load Command Class definitions" << std::endl;
-      return;
-    }
-
-    ConnectToGateway();
-
-    zconnection_set_transmit_done_func(gwZipconnection_, transmit_done);
-
-    requestedKeys_ = 0;
-    csaInclusionRequested_ = 0;
-
-    net_mgmt_init(gwZipconnection_);
+  if (zwave.operation() == ZwaveMsg::SEND) {
+    Send(zwave);
+  } else if (zwave.operation() == ZwaveMsg::ADDNODE) {
+    AddNode();
+  } else if (zwave.operation() == ZwaveMsg::REMOVENODE) {
+    RemoveNode();
+  } else if (zwave.operation() == ZwaveMsg::SETDEFAULT) {
+    SetDefault();
+  } else if (zwave.operation() == ZwaveMsg::LIST) {
+    List();
   }
 
-  // ZwaveMsg_ZwaveOperations i;
+  return true;
+}
 
-  bool ZWaveDriver::ProcessConfig(const DriverConfig& config) {
-    ZwaveMsg zwave(config.zwave());
+bool ZWaveDriver::SendUpdate() { return true; }
 
-    if (zwave.operation() == ZwaveMsg::SEND) {
-      Send(zwave);
-    } else if (zwave.operation() == ZwaveMsg::ADDNODE) {
-      AddNode(zwave);
-    } else if (zwave.operation() == ZwaveMsg::REMOVENODE) {
-      RemoveNode(zwave);
-    } else if (zwave.operation() == ZwaveMsg::SETDEFAULT) {
-      SetDefault(zwave);
-    } else if (zwave.operation() == ZwaveMsg::LIST) {
-      List(zwave);
-    }
+void ZWaveDriver::Send(ZwaveMsg& msg) {
+  std::string cmdName;
+  std::string className;
 
-    return true;
+  const zw_command_class* pClass;
+  const zw_command* pCmd;
+
+  cmdName = ZwaveCmdType_Name(msg.zwave_cmd().cmd());
+  className = ZwaveClassType_Name(msg.zwave_cmd().zwclass());
+
+  pClass = zw_cmd_tool_get_class_by_name(className.c_str());
+  pCmd = zw_cmd_tool_get_cmd_by_name(pClass, cmdName.c_str());
+
+  if (!pClass || !pCmd) {
+    std::cerr << "Invalid <ZWave class, command> pair." << std::endl;
+    return;
   }
 
-  bool ZWaveDriver::SendUpdate() { return true; }
+  static unsigned char binaryCommand[binaryCommand_BUFFER_SIZE];
 
-  void ZWaveDriver::Send(ZwaveMsg& msg) {
-    std::string cmdName;
-    std::string className;
+  memset(binaryCommand, 0, binaryCommand_BUFFER_SIZE);
+  binaryCommand[0] = pClass->cmd_class_number;
+  binaryCommand[1] = pCmd->cmd_number;
 
-    const zw_command_class* pClass;
-    const zw_command* pCmd;
+  memcpy(&binaryCommand[2], msg.zwave_cmd().params().c_str(),
+         msg.zwave_cmd().params().length());
 
-    cmdName = ZwaveCmdType_Name(msg.zwave_cmd().cmd());
-    className = ZwaveClassType_Name(msg.zwave_cmd().zwclass());
+  int binaryCommandLen =
+      2 +
+      msg.zwave_cmd()
+          .params()
+          .length();  // sizeof([class_number,cmd_number,params])
 
-    pClass = zw_cmd_tool_get_class_by_name(className.c_str());
-    pCmd = zw_cmd_tool_get_cmd_by_name(pClass, cmdName.c_str());
+  if (0 != panConnectionBusy_) {
+    std::cerr << "Busy, cannot send right now." << std::endl;
+    return;
+  }
 
-    if (!pClass || !pCmd) {
-      std::cerr << "Invalid <ZWave class, command> pair." << std::endl;
-      return;
+  if (msg.device() != destAddress_) {
+    if (panConnection_) {
+      zclient_stop(panConnection_);
+      panConnection_ = NULL;
     }
-
-    static unsigned char binaryCommand[binaryCommand_BUFFER_SIZE];
-
-    memset(binaryCommand, 0, binaryCommand_BUFFER_SIZE);
-    binaryCommand[0] = pClass->cmd_class_number;
-    binaryCommand[1] = pCmd->cmd_number;
-
-    memcpy(&binaryCommand[2], msg.zwave_cmd().params().c_str(),
-           msg.zwave_cmd().params().length());
-
-    int binaryCommandLen =
-        2 +
-        msg.zwave_cmd()
-            .params()
-            .length();  // sizeof([class_number,cmd_number,params])
-
-    if (0 != panConnectionBusy_) {
-      std::cerr << "Busy, cannot send right now." << std::endl;
-      return;
-    }
-
-    if (msg.device() != destAddress_) {
-      if (panConnection_) {
-        zclient_stop(panConnection_);
-        panConnection_ = NULL;
-      }
-      // FIXME: Use thread synchronization instead of sleep to avoid "Socket
-      // Read
-      // Error"
-      std::this_thread::sleep_for(std::chrono::seconds(1));
-      panConnection_ = ZipConnect(msg.device().c_str());
-    }
-    if (!panConnection_) {
-      std::cerr << "Failed to connect to PAN node" << std::endl;
-      destAddress_[0] = 0;
-      return;
-    }
-    destAddress_ = msg.device();
+    // FIXME: Use thread synchronization instead of sleep to avoid "Socket
+    // Read
+    // Error"
     std::this_thread::sleep_for(std::chrono::seconds(1));
-    zconnection_set_transmit_done_func(panConnection_, TransmitDonePan);
-    if (zconnection_send_async(panConnection_, binaryCommand, binaryCommandLen,
-                               0)) {
-      panConnectionBusy_ = true;
-    }
+    panConnection_ = ZipConnect(msg.device().c_str());
   }
-
-  void ZWaveDriver::AddNode(ZwaveMsg& /*msg*/) {
-    net_mgmt_learn_mode_start();
-
-    int idx = 0;
-    static uint8_t buf[200];
-
-    const uint8_t COMMAND_CLASS_NETWORK_MANAGEMENT_INCLUSION = 0x34;
-    const uint8_t NODE_ADD = 0x01;
-
-    buf[idx++] = COMMAND_CLASS_NETWORK_MANAGEMENT_INCLUSION;
-    buf[idx++] = NODE_ADD;
-    buf[idx++] = get_unique_seq_no();
-    buf[idx++] = 0;
-    buf[idx++] = 0x07; /* ADD_NODE_S2 */
-    buf[idx++] = 0;    /* Normal power, no NWI */
-
-    zconnection_send_async(gwZipconnection_, buf, idx, 0);
+  if (!panConnection_) {
+    std::cerr << "Failed to connect to PAN node" << std::endl;
+    destAddress_[0] = 0;
+    return;
   }
-
-  void ZWaveDriver::RemoveNode(ZwaveMsg& /*msg*/) {
-    int idx = 0;
-    static uint8_t buf[200];
-
-    const uint8_t COMMAND_CLASS_NETWORK_MANAGEMENT_INCLUSION = 0x34;
-    const uint8_t NODE_REMOVE = 0x03;
-
-    buf[idx++] = COMMAND_CLASS_NETWORK_MANAGEMENT_INCLUSION;
-    buf[idx++] = NODE_REMOVE;
-    buf[idx++] = get_unique_seq_no();
-    buf[idx++] = 0;
-    buf[idx++] = 0x01; /* REMOVE_NODE_ANY */
-
-    zconnection_send_async(gwZipconnection_, buf, idx, 0);
+  destAddress_ = msg.device();
+  std::this_thread::sleep_for(std::chrono::seconds(1));
+  zconnection_set_transmit_done_func(panConnection_, TransmitDonePan);
+  if (zconnection_send_async(panConnection_, binaryCommand, binaryCommandLen,
+                             0)) {
+    panConnectionBusy_ = true;
   }
+}
 
-  void ZWaveDriver::SetDefault(ZwaveMsg& /*msg*/) {
-    int idx = 0;
-    static uint8_t buf[200];
+void ZWaveDriver::AddNode() {
+  net_mgmt_learn_mode_start();
 
-    const uint8_t COMMAND_CLASS_NETWORK_MANAGEMENT_BASIC = 0x4D;
-    const uint8_t DEFAULT_SET = 0x06;
+  int idx = 0;
+  static uint8_t buf[200];
 
-    buf[idx++] = COMMAND_CLASS_NETWORK_MANAGEMENT_BASIC;
-    buf[idx++] = DEFAULT_SET;
-    buf[idx++] = get_unique_seq_no();
+  const uint8_t COMMAND_CLASS_NETWORK_MANAGEMENT_INCLUSION = 0x34;
+  const uint8_t NODE_ADD = 0x01;
 
-    zconnection_send_async(gwZipconnection_, buf, idx, 0);
-  }
+  buf[idx++] = COMMAND_CLASS_NETWORK_MANAGEMENT_INCLUSION;
+  buf[idx++] = NODE_ADD;
+  buf[idx++] = get_unique_seq_no();
+  buf[idx++] = 0;
+  buf[idx++] = 0x07; /* ADD_NODE_S2 */
+  buf[idx++] = 0;    /* Normal power, no NWI */
 
-  void ZWaveDriver::List(ZwaveMsg& msg) {
-    std::cout << "List of discovered Z/IP services:" << std::endl;
-    for (zip_service* n = zresource_get(); n; n = n->next) {
-      std::cout << " host_name:    " << n->host_name << std::endl;
-      std::cout << " service_name: " << n->service_name << std::endl;
-      std::cout << " infolen: " << std::dec << n->infolen << std::endl;
-      std::cout << " info: " << std::endl;
+  zconnection_send_async(gwZipconnection_, buf, idx, 0);
+}
 
-      ZwaveMsg_ZwaveNode* node = msg.add_node();
-      node->set_service_name(n->service_name);
+void ZWaveDriver::RemoveNode() {
+  int idx = 0;
+  static uint8_t buf[200];
 
-      for (int i = 0; i < n->infolen; i++) {
-        if (ZwaveClassType_IsValid(n->info[i])) {
-          const std::string& className =
-              ZwaveClassType_Name(static_cast<ZwaveClassType>(n->info[i]));
+  const uint8_t COMMAND_CLASS_NETWORK_MANAGEMENT_INCLUSION = 0x34;
+  const uint8_t NODE_REMOVE = 0x03;
 
-          ZwaveClassType zwave_class;
-          ZwaveClassType_Parse(className, &zwave_class);
+  buf[idx++] = COMMAND_CLASS_NETWORK_MANAGEMENT_INCLUSION;
+  buf[idx++] = NODE_REMOVE;
+  buf[idx++] = get_unique_seq_no();
+  buf[idx++] = 0;
+  buf[idx++] = 0x01; /* REMOVE_NODE_ANY */
 
-          node->add_zwave_class(zwave_class);
+  zconnection_send_async(gwZipconnection_, buf, idx, 0);
+}
 
-          std::cout << "  " << std::hex << (int)n->info[i] << " " << className
-                    << std::endl;
-        } else {
-          std::cout << "  " << std::hex << static_cast<int>(n->info[i])
-                    << " not found in the ZwaveClassType enum." << std::endl;
-        }
+void ZWaveDriver::SetDefault() {
+  int idx = 0;
+  static uint8_t buf[200];
+
+  const uint8_t COMMAND_CLASS_NETWORK_MANAGEMENT_BASIC = 0x4D;
+  const uint8_t DEFAULT_SET = 0x06;
+
+  buf[idx++] = COMMAND_CLASS_NETWORK_MANAGEMENT_BASIC;
+  buf[idx++] = DEFAULT_SET;
+  buf[idx++] = get_unique_seq_no();
+
+  zconnection_send_async(gwZipconnection_, buf, idx, 0);
+}
+
+void ZWaveDriver::List() {
+  ZwaveMsg msg;
+
+  std::cout << "List of discovered Z/IP services:" << std::endl;
+  for (zip_service* n = zresource_get(); n; n = n->next) {
+    std::cout << " host_name:    " << n->host_name << std::endl;
+    std::cout << " service_name: " << n->service_name << std::endl;
+    std::cout << " infolen: " << std::dec << n->infolen << std::endl;
+    std::cout << " info: " << std::endl;
+
+    ZwaveMsg_ZwaveNode* node = msg.add_node();
+    node->set_service_name(n->service_name);
+
+    for (int i = 0; i < n->infolen; i++) {
+      if (ZwaveClassType_IsValid(n->info[i])) {
+        const std::string& className =
+            ZwaveClassType_Name(static_cast<ZwaveClassType>(n->info[i]));
+
+        ZwaveClassType zwave_class;
+        ZwaveClassType_Parse(className, &zwave_class);
+
+        node->add_zwave_class(zwave_class);
+
+        std::cout << "  " << std::hex << (int)n->info[i] << " " << className
+                  << std::endl;
+      } else {
+        std::cout << "  " << std::hex << static_cast<int>(n->info[i])
+                  << " not found in the ZwaveClassType enum." << std::endl;
       }
-      std::cout << std::endl;
-    }
-    msg.set_result(true);
-  }
-
-  bool ZWaveDriver::ConnectToGateway() {
-    gwZipconnection_ = ZipConnect(serverIP_.c_str());
-
-    if (gwZipconnection_) return true;
-    return false;
-  }
-
-  zconnection* ZWaveDriver::ZipConnect(const char* remote_addr) {
-    if (cfgPskLen_ == 0) {
-      std::cerr << "PSK not configured - unable to connect to " << remote_addr
-                << std::endl;
-      return 0;
-    }
-
-    zconnection* zc;
-
-    zc = zclient_start(remote_addr, 41230, reinterpret_cast<char*>(&cfgPsk_[0]),
-                       cfgPskLen_, ApplicationCommandHandler);
-    if (zc == 0) {
-      std::cout << "Error connecting to " << remote_addr << std::endl;
-    } else {
-      std::cout << "ZWaveDriver connected to " << remote_addr << std::endl;
-    }
-    return zc;
-  }
-
-  void print_hex_string(const uint8_t* data, unsigned int datalen) {
-    unsigned int i;
-
-    for (i = 0; i < datalen; i++) {
-      std::cout << " " << std::hex << int(data[i]);
-      if ((i & 0xf) == 0xf) {
-        std::cout << std::endl;
-      }
-    }
-    std::cout.flush();
-  }
-
-  void ZWaveDriver::ApplicationCommandHandler(zconnection* /*zc*/,
-                                              const uint8_t* data,
-                                              uint16_t datalen) {
-    int i;
-    int len;
-    const uint8_t COMMAND_CLASS_NETWORK_MANAGEMENT_INCLUSION = 0x34;
-
-    unsigned char cmd_classes[400][MAX_LEN_CMD_CLASS_NAME];
-    std::cout << "ApplicationCommandHandler datalen=" << datalen << std::endl;
-
-    print_hex_string(data, datalen);
-
-    switch (data[0]) {
-      case COMMAND_CLASS_NETWORK_MANAGEMENT_INCLUSION:
-        parse_network_mgmt_inclusion_packet(data, datalen);
-        break;
-
-      default:
-        memset(cmd_classes, 0, sizeof(cmd_classes));
-        /* decode() clobbers data - but we are not using it afterwards, hence
-         * the
-         * typecast */
-        decode((uint8_t*)data, datalen, cmd_classes, &len);
-        std::cout << std::endl;
-        for (i = 0; i < len; i++) {
-          std::cout << " +++ " << cmd_classes[i] << std::endl;
-        }
-        std::cout << std::endl;
-        break;
-    }
-  }
-
-  void ZWaveDriver::TransmitDonePan(zconnection* /*zc*/,
-                                    transmission_status_code_t status) {
-    std::cout << "ZWaveDriver::transmit_done_pan" << std::endl;
-
-    switch (status) {
-      case TRANSMIT_OK:
-        break;
-      case TRANSMIT_NOT_OK:
-        std::cerr << "Transmit failed" << std::endl;
-        break;
-      case TRANSMIT_TIMEOUT:
-        std::cerr << "Transmit attempt timed out" << std::endl;
-        break;
-    }
-    ZWaveDriver::panConnectionBusy_ = false;
-  }
-
-  static int hex2int(char c) {
-    if (c >= '0' && c <= '9') {
-      return c - '0';
-    } else if (c >= 'a' && c <= 'f') {
-      return c - 'a' + 0xa;
-    } else if (c >= 'A' && c <= 'F') {
-      return c - 'A' + 0xa;
-    } else {
-      return -1;
-    }
-  }
-
-  void ZWaveDriver::ParsePsk(const char* psk) {
-    int val;
-    cfgPskLen_ = 0;
-    const char* s = psk;
-    while (*s && cfgPskLen_ < cfgPsk_.size()) {
-      val = hex2int(*s++);
-      if (val < 0) break;
-      cfgPsk_[cfgPskLen_] = ((val)&0xf) << 4;
-      val = hex2int(*s++);
-      if (val < 0) break;
-      cfgPsk_[cfgPskLen_] |= (val & 0xf);
-      cfgPskLen_++;
     }
     std::cout << std::endl;
   }
+  msg.set_result(true);
 
-  }  // namespace matrix_malos
+  std::string buffer;
+  msg.SerializeToString(&buffer);
+  zqm_push_update_->Send(buffer);
+}
+
+bool ZWaveDriver::ConnectToGateway() {
+  gwZipconnection_ = ZipConnect(serverIP_.c_str());
+
+  if (gwZipconnection_) return true;
+  return false;
+}
+
+zconnection* ZWaveDriver::ZipConnect(const char* remote_addr) {
+  if (cfgPskLen_ == 0) {
+    std::cerr << "PSK not configured - unable to connect to " << remote_addr
+              << std::endl;
+    return 0;
+  }
+
+  zconnection* zc;
+
+  zc = zclient_start(remote_addr, 41230, reinterpret_cast<char*>(&cfgPsk_[0]),
+                     cfgPskLen_, ApplicationCommandHandler);
+  if (zc == 0) {
+    std::cout << "Error connecting to " << remote_addr << std::endl;
+  } else {
+    std::cout << "ZWaveDriver connected to " << remote_addr << std::endl;
+  }
+  return zc;
+}
+
+void print_hex_string(const uint8_t* data, unsigned int datalen) {
+  unsigned int i;
+
+  for (i = 0; i < datalen; i++) {
+    std::cout << " " << std::hex << int(data[i]);
+    if ((i & 0xf) == 0xf) {
+      std::cout << std::endl;
+    }
+  }
+  std::cout.flush();
+}
+
+void ZWaveDriver::ApplicationCommandHandler(zconnection* /*zc*/,
+                                            const uint8_t* data,
+                                            uint16_t datalen) {
+  int i;
+  int len;
+  const uint8_t COMMAND_CLASS_NETWORK_MANAGEMENT_INCLUSION = 0x34;
+
+  unsigned char cmd_classes[400][MAX_LEN_CMD_CLASS_NAME];
+  std::cout << "ApplicationCommandHandler datalen=" << datalen << std::endl;
+
+  print_hex_string(data, datalen);
+
+  switch (data[0]) {
+    case COMMAND_CLASS_NETWORK_MANAGEMENT_INCLUSION:
+      parse_network_mgmt_inclusion_packet(data, datalen);
+      break;
+
+    default:
+      memset(cmd_classes, 0, sizeof(cmd_classes));
+      /* decode() clobbers data - but we are not using it afterwards, hence
+       * the
+       * typecast */
+      decode((uint8_t*)data, datalen, cmd_classes, &len);
+      std::cout << std::endl;
+      for (i = 0; i < len; i++) {
+        std::cout << " +++ " << cmd_classes[i] << std::endl;
+      }
+      std::cout << std::endl;
+      break;
+  }
+
+  ZwaveMsg msg;
+
+  if (datalen >= 3 && data[2])
+    msg.set_result(true);
+  else
+    msg.set_result(false);
+
+  std::string buffer;
+  msg.SerializeToString(&buffer);
+  static_zqm_push_update_->Send(buffer);
+}
+
+void ZWaveDriver::TransmitDonePan(zconnection* /*zc*/,
+                                  transmission_status_code_t status) {
+  std::cout << "ZWaveDriver::transmit_done_pan" << std::endl;
+
+  switch (status) {
+    case TRANSMIT_OK:
+      break;
+    case TRANSMIT_NOT_OK:
+      std::cerr << "Transmit failed" << std::endl;
+      break;
+    case TRANSMIT_TIMEOUT:
+      std::cerr << "Transmit attempt timed out" << std::endl;
+      break;
+  }
+  ZWaveDriver::panConnectionBusy_ = false;
+}
+
+static int hex2int(char c) {
+  if (c >= '0' && c <= '9') {
+    return c - '0';
+  } else if (c >= 'a' && c <= 'f') {
+    return c - 'a' + 0xa;
+  } else if (c >= 'A' && c <= 'F') {
+    return c - 'A' + 0xa;
+  } else {
+    return -1;
+  }
+}
+
+void ZWaveDriver::ParsePsk(const char* psk) {
+  int val;
+  cfgPskLen_ = 0;
+  const char* s = psk;
+  while (*s && cfgPskLen_ < cfgPsk_.size()) {
+    val = hex2int(*s++);
+    if (val < 0) break;
+    cfgPsk_[cfgPskLen_] = ((val)&0xf) << 4;
+    val = hex2int(*s++);
+    if (val < 0) break;
+    cfgPsk_[cfgPskLen_] |= (val & 0xf);
+    cfgPskLen_++;
+  }
+  std::cout << std::endl;
+}
+
+}  // namespace matrix_malos
