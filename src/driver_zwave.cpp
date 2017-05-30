@@ -18,22 +18,22 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "./driver_zwave.h"
+
+#include "./src/driver.pb.h"
+
+#include <gflags/gflags.h>
+
 #include <chrono>
 #include <iostream>
 #include <string>
 #include <thread>
-
-#include <gflags/gflags.h>
 
 DEFINE_int32(port, 41230, "ZWaveIP gateway port");
 DEFINE_string(server, "::1", "ZWaveIP Gateway ");
 DEFINE_string(psk, "123456789012345678901234567890aa",
               "ZWave Pre Shared Key (PSK)");
 DEFINE_string(xml, "ZWave_custom_cmd_classes.xml", "XML ZWave classes");
-
-#include "./driver_zwave.h"
-
-#include "./src/driver.pb.h"
 
 #define MAX_ADDRESS_SIZE 100
 
@@ -88,7 +88,6 @@ void net_mgmt_command_handler(union evt_handler_struct evt) {
                      "device does "
                      "not require the Access or Authenticated keys."
                   << std::endl;
-
       } break;
       default:
         break;
@@ -179,22 +178,21 @@ bool ZWaveDriver::ProcessConfig(const DriverConfig& config) {
   return true;
 }
 
-bool ZWaveDriver::SendUpdate() { return true; }
+bool ZWaveDriver::SendUpdate() {
+  /* unimplemented yet */
+  return true;
+}
 
 void ZWaveDriver::Send(const ZwaveMsg& msg) {
-  std::string cmdName;
-  std::string className;
+  std::string cmd_name = ZwaveCmdType_Name(msg.zwave_cmd().cmd());
+  std::string class_name = ZwaveClassType_Name(msg.zwave_cmd().zwclass());
 
-  const zw_command_class* pClass;
-  const zw_command* pCmd;
+  const zw_command_class* p_class =
+      zw_cmd_tool_get_class_by_name(class_name.c_str());
+  const zw_command* p_cmd =
+      zw_cmd_tool_get_cmd_by_name(p_class, cmd_name.c_str());
 
-  cmdName = ZwaveCmdType_Name(msg.zwave_cmd().cmd());
-  className = ZwaveClassType_Name(msg.zwave_cmd().zwclass());
-
-  pClass = zw_cmd_tool_get_class_by_name(className.c_str());
-  pCmd = zw_cmd_tool_get_cmd_by_name(pClass, cmdName.c_str());
-
-  if (!pClass || !pCmd) {
+  if (!p_class || !p_cmd) {
     std::cerr << "Invalid <ZWave class, command> pair." << std::endl;
     return;
   }
@@ -203,8 +201,8 @@ void ZWaveDriver::Send(const ZwaveMsg& msg) {
   static unsigned char binary_command[binary_command_buffer_size];
 
   memset(binary_command, 0, binary_command_buffer_size);
-  binary_command[0] = pClass->cmd_class_number;
-  binary_command[1] = pCmd->cmd_number;
+  binary_command[0] = p_class->cmd_class_number;
+  binary_command[1] = p_cmd->cmd_number;
 
   memcpy(&binary_command[2], msg.zwave_cmd().params().c_str(),
          msg.zwave_cmd().params().length());
@@ -215,7 +213,7 @@ void ZWaveDriver::Send(const ZwaveMsg& msg) {
           .params()
           .length();  // sizeof([class_number,cmd_number,params])
 
-  if (0 != pan_bonnection_busy_) {
+  if (pan_bonnection_busy_) {
     std::cerr << "Busy, cannot send right now." << std::endl;
     return;
   }
@@ -226,8 +224,7 @@ void ZWaveDriver::Send(const ZwaveMsg& msg) {
       pan_connection_ = NULL;
     }
     // FIXME: Use thread synchronization instead of sleep to avoid "Socket
-    // Read
-    // Error"
+    //        Read Error"
     std::this_thread::sleep_for(std::chrono::seconds(1));
     pan_connection_ = ZipConnect(msg.device().c_str());
   }
@@ -309,16 +306,16 @@ void ZWaveDriver::List() {
 
     for (int i = 0; i < n->infolen; i++) {
       if (ZwaveClassType_IsValid(n->info[i])) {
-        const std::string& className =
+        const std::string& class_name =
             ZwaveClassType_Name(static_cast<ZwaveClassType>(n->info[i]));
 
         ZwaveClassType zwave_class;
-        ZwaveClassType_Parse(className, &zwave_class);
+        ZwaveClassType_Parse(class_name, &zwave_class);
 
         node->add_zwave_class(zwave_class);
 
-        std::cout << "  " << std::hex << (int)n->info[i] << " " << className
-                  << std::endl;
+        std::cout << "  " << std::hex << static_cast<int>(n->info[i]) << " "
+                  << class_name << std::endl;
       } else {
         std::cout << "  " << std::hex << static_cast<int>(n->info[i])
                   << " not found in the ZwaveClassType enum." << std::endl;
@@ -353,9 +350,7 @@ zconnection* ZWaveDriver::ZipConnect(const char* remote_addr) {
 }
 
 void print_hex_string(const uint8_t* data, unsigned int datalen) {
-  unsigned int i;
-
-  for (i = 0; i < datalen; i++) {
+  for (unsigned int i = 0; i < datalen; i++) {
     std::cout << " " << std::hex << int(data[i]);
     if ((i & 0xf) == 0xf) {
       std::cout << std::endl;
@@ -367,8 +362,6 @@ void print_hex_string(const uint8_t* data, unsigned int datalen) {
 void ZWaveDriver::ApplicationCommandHandler(zconnection* /*zc*/,
                                             const uint8_t* data,
                                             uint16_t datalen) {
-  int i;
-  int len;
   const uint8_t COMMAND_CLASS_NETWORK_MANAGEMENT_INCLUSION = 0x34;
 
   unsigned char cmd_classes[400][MAX_LEN_CMD_CLASS_NAME];
@@ -384,11 +377,11 @@ void ZWaveDriver::ApplicationCommandHandler(zconnection* /*zc*/,
     default:
       memset(cmd_classes, 0, sizeof(cmd_classes));
       /* decode() clobbers data - but we are not using it afterwards, hence
-       * the
-       * typecast */
-      decode((uint8_t*)data, datalen, cmd_classes, &len);
+       * the typecast */
+      int len;
+      decode((uint8_t*)(data), datalen, cmd_classes, &len);
       std::cout << std::endl;
-      for (i = 0; i < len; i++) {
+      for (int i = 0; i < len; i++) {
         std::cout << " +++ " << cmd_classes[i] << std::endl;
       }
       std::cout << std::endl;
@@ -437,11 +430,10 @@ static int hex2int(char c) {
 }
 
 void ZWaveDriver::ParsePsk(const char* psk) {
-  int val;
   cfg_psk_len_ = 0;
   const char* s = psk;
   while (*s && cfg_psk_len_ < cfg_psk_.size()) {
-    val = hex2int(*s++);
+    int val = hex2int(*s++);
     if (val < 0) break;
     cfg_psk_[cfg_psk_len_] = ((val)&0xf) << 4;
     val = hex2int(*s++);
