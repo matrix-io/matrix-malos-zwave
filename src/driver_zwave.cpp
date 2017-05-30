@@ -152,16 +152,28 @@ bool ZWaveDriver::ProcessConfig(const DriverConfig& config) {
 
   static_zqm_push_update_ = zqm_push_update_.get();
 
-  if (zwave.operation() == ZwaveMsg::SEND) {
-    Send(zwave);
-  } else if (zwave.operation() == ZwaveMsg::ADDNODE) {
-    AddNode();
-  } else if (zwave.operation() == ZwaveMsg::REMOVENODE) {
-    RemoveNode();
-  } else if (zwave.operation() == ZwaveMsg::SETDEFAULT) {
-    SetDefault();
-  } else if (zwave.operation() == ZwaveMsg::LIST) {
-    List();
+  switch (zwave.operation()) {
+    case ZwaveMsg::SEND:
+      Send(zwave);
+      break;
+    case ZwaveMsg::ADDNODE:
+      AddNode();
+      break;
+    case ZwaveMsg::REMOVENODE:
+      RemoveNode();
+      break;
+    case ZwaveMsg::SETDEFAULT:
+      SetDefault();
+      break;
+    case ZwaveMsg::LIST:
+      List();
+      break;
+    case ZwaveMsg::UNDEF:
+    default:
+      // If this happens the program has to be fixed.
+      std::cerr << "Invalid enum conversion. EnumMalosEyeDetectionType."
+                << std::endl;
+      std::exit(1);
   }
 
   return true;
