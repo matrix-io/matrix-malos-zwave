@@ -27,14 +27,14 @@
 
 DEFINE_int32(port, 41230, "ZWaveIP gateway port");
 DEFINE_string(server, "::1", "ZWaveIP Gateway ");
-DEFINE_string(psk, "123456789012345678901234567890aa", "PSK");
-DEFINE_string(xml, "ZWave_custom_cmd_classes.xml", "XML zwave classes");
+DEFINE_string(psk, "123456789012345678901234567890aa",
+              "ZWave Pre Shared Key (PSK)");
+DEFINE_string(xml, "ZWave_custom_cmd_classes.xml", "XML ZWave classes");
 
 #include "./driver_zwave.h"
 
 #include "./src/driver.pb.h"
 
-#define binaryCommand_BUFFER_SIZE 2000
 #define MAX_ADDRESS_SIZE 100
 
 #define SECURITY_0_NETWORK_KEY_BIT 0x80
@@ -52,9 +52,9 @@ uint8_t get_unique_seq_no(void) {
 void net_mgmt_command_handler(union evt_handler_struct evt) {
   switch (evt.dsk_report.type) {
     case APPROVE_REQUESTED_KEYS: {
-      matrix_malos::ZWaveDriver::requestedKeys_ =
+      matrix_malos::ZWaveDriver::requested_keys_ =
           evt.requested_keys.requested_keys;
-      matrix_malos::ZWaveDriver::csaInclusionRequested_ =
+      matrix_malos::ZWaveDriver::csa_inclusion_requested_ =
           evt.requested_keys.csa_requested;
 
       std::cout << "The joining node requests these keys:\n" << std::endl;
@@ -82,7 +82,6 @@ void net_mgmt_command_handler(union evt_handler_struct evt) {
       case APPROVE_DSK: {
         std::cout << "The joining node is reporting this device specific key:"
                   << std::endl;
-        // print_hex_string(evt.dsk_report.dsk, 16);
         std::cout << "Please approve by typing \'acceptdsk 12345\' where 12345 "
                      "is the "
                      "first part of the DSK.\n12345 may be omitted if the "
@@ -113,23 +112,23 @@ void transmit_done(zconnection* /*zc*/, transmission_status_code_t status) {
 namespace matrix_malos {
 
 /* Static members of ZWaveDriver class */
-bool ZWaveDriver::panConnectionBusy_;
-uint8_t ZWaveDriver::requestedKeys_;
-uint8_t ZWaveDriver::csaInclusionRequested_;
+bool ZWaveDriver::pan_bonnection_busy_;
+uint8_t ZWaveDriver::requested_keys_;
+uint8_t ZWaveDriver::csa_inclusion_requested_;
 ZmqPusher* ZWaveDriver::static_zqm_push_update_;
 
 void ZresourceMDNSHelper() { zresource_mdns_thread_func(NULL); }
 
 ZWaveDriver::ZWaveDriver()
     : MalosBase(kZWaveDriverName),
-      MDNSThread_(ZresourceMDNSHelper),
-      cfgPsk_(64) {
+      mdns_thread_(ZresourceMDNSHelper),
+      cfg_psk_(64) /* fixed size = 64 */ {
   SetNeedsKeepalives(true);
   SetMandatoryConfiguration(true);
   SetNotesForHuman("ZWave Driver v1.0");
-  panConnectionBusy_ = false;
+  pan_bonnection_busy_ = false;
 
-  serverIP_ = FLAGS_server;
+  server_ip_ = FLAGS_server;
 
   ParsePsk(FLAGS_psk.c_str());
   std::cout << "FLAGS_psk : " << FLAGS_psk << std::endl;
@@ -139,16 +138,14 @@ ZWaveDriver::ZWaveDriver()
     return;
   }
 
-  ConnectToGateway();
+  gw_zip_connection_ = ZipConnect(server_ip_.c_str());
 
-  zconnection_set_transmit_done_func(gwZipconnection_, transmit_done);
+  zconnection_set_transmit_done_func(gw_zip_connection_, transmit_done);
 
-  requestedKeys_ = 0;
-  csaInclusionRequested_ = 0;
-  net_mgmt_init(gwZipconnection_);
+  requested_keys_ = 0;
+  csa_inclusion_requested_ = 0;
+  net_mgmt_init(gw_zip_connection_);
 }
-
-// ZwaveMsg_ZwaveOperations i;
 
 bool ZWaveDriver::ProcessConfig(const DriverConfig& config) {
   ZwaveMsg zwave(config.zwave());
@@ -172,7 +169,7 @@ bool ZWaveDriver::ProcessConfig(const DriverConfig& config) {
 
 bool ZWaveDriver::SendUpdate() { return true; }
 
-void ZWaveDriver::Send(ZwaveMsg& msg) {
+void ZWaveDriver::Send(const ZwaveMsg& msg) {
   std::string cmdName;
   std::string className;
 
@@ -190,48 +187,49 @@ void ZWaveDriver::Send(ZwaveMsg& msg) {
     return;
   }
 
-  static unsigned char binaryCommand[binaryCommand_BUFFER_SIZE];
+  const int binary_command_buffer_size = 2000;
+  static unsigned char binary_command[binary_command_buffer_size];
 
-  memset(binaryCommand, 0, binaryCommand_BUFFER_SIZE);
-  binaryCommand[0] = pClass->cmd_class_number;
-  binaryCommand[1] = pCmd->cmd_number;
+  memset(binary_command, 0, binary_command_buffer_size);
+  binary_command[0] = pClass->cmd_class_number;
+  binary_command[1] = pCmd->cmd_number;
 
-  memcpy(&binaryCommand[2], msg.zwave_cmd().params().c_str(),
+  memcpy(&binary_command[2], msg.zwave_cmd().params().c_str(),
          msg.zwave_cmd().params().length());
 
-  int binaryCommandLen =
+  int binary_commandLen =
       2 +
       msg.zwave_cmd()
           .params()
           .length();  // sizeof([class_number,cmd_number,params])
 
-  if (0 != panConnectionBusy_) {
+  if (0 != pan_bonnection_busy_) {
     std::cerr << "Busy, cannot send right now." << std::endl;
     return;
   }
 
-  if (msg.device() != destAddress_) {
-    if (panConnection_) {
-      zclient_stop(panConnection_);
-      panConnection_ = NULL;
+  if (msg.device() != dest_address_) {
+    if (pan_connection_) {
+      zclient_stop(pan_connection_);
+      pan_connection_ = NULL;
     }
     // FIXME: Use thread synchronization instead of sleep to avoid "Socket
     // Read
     // Error"
     std::this_thread::sleep_for(std::chrono::seconds(1));
-    panConnection_ = ZipConnect(msg.device().c_str());
+    pan_connection_ = ZipConnect(msg.device().c_str());
   }
-  if (!panConnection_) {
+  if (!pan_connection_) {
     std::cerr << "Failed to connect to PAN node" << std::endl;
-    destAddress_[0] = 0;
+    dest_address_[0] = 0;
     return;
   }
-  destAddress_ = msg.device();
+  dest_address_ = msg.device();
   std::this_thread::sleep_for(std::chrono::seconds(1));
-  zconnection_set_transmit_done_func(panConnection_, TransmitDonePan);
-  if (zconnection_send_async(panConnection_, binaryCommand, binaryCommandLen,
+  zconnection_set_transmit_done_func(pan_connection_, TransmitDonePan);
+  if (zconnection_send_async(pan_connection_, binary_command, binary_commandLen,
                              0)) {
-    panConnectionBusy_ = true;
+    pan_bonnection_busy_ = true;
   }
 }
 
@@ -251,7 +249,7 @@ void ZWaveDriver::AddNode() {
   buf[idx++] = 0x07; /* ADD_NODE_S2 */
   buf[idx++] = 0;    /* Normal power, no NWI */
 
-  zconnection_send_async(gwZipconnection_, buf, idx, 0);
+  zconnection_send_async(gw_zip_connection_, buf, idx, 0);
 }
 
 void ZWaveDriver::RemoveNode() {
@@ -267,7 +265,7 @@ void ZWaveDriver::RemoveNode() {
   buf[idx++] = 0;
   buf[idx++] = 0x01; /* REMOVE_NODE_ANY */
 
-  zconnection_send_async(gwZipconnection_, buf, idx, 0);
+  zconnection_send_async(gw_zip_connection_, buf, idx, 0);
 }
 
 void ZWaveDriver::SetDefault() {
@@ -281,7 +279,7 @@ void ZWaveDriver::SetDefault() {
   buf[idx++] = DEFAULT_SET;
   buf[idx++] = get_unique_seq_no();
 
-  zconnection_send_async(gwZipconnection_, buf, idx, 0);
+  zconnection_send_async(gw_zip_connection_, buf, idx, 0);
 }
 
 void ZWaveDriver::List() {
@@ -323,15 +321,8 @@ void ZWaveDriver::List() {
   zqm_push_update_->Send(buffer);
 }
 
-bool ZWaveDriver::ConnectToGateway() {
-  gwZipconnection_ = ZipConnect(serverIP_.c_str());
-
-  if (gwZipconnection_) return true;
-  return false;
-}
-
 zconnection* ZWaveDriver::ZipConnect(const char* remote_addr) {
-  if (cfgPskLen_ == 0) {
+  if (cfg_psk_len_ == 0) {
     std::cerr << "PSK not configured - unable to connect to " << remote_addr
               << std::endl;
     return 0;
@@ -339,8 +330,8 @@ zconnection* ZWaveDriver::ZipConnect(const char* remote_addr) {
 
   zconnection* zc;
 
-  zc = zclient_start(remote_addr, 41230, reinterpret_cast<char*>(&cfgPsk_[0]),
-                     cfgPskLen_, ApplicationCommandHandler);
+  zc = zclient_start(remote_addr, 41230, reinterpret_cast<char*>(&cfg_psk_[0]),
+                     cfg_psk_len_, ApplicationCommandHandler);
   if (zc == 0) {
     std::cout << "Error connecting to " << remote_addr << std::endl;
   } else {
@@ -418,7 +409,7 @@ void ZWaveDriver::TransmitDonePan(zconnection* /*zc*/,
       std::cerr << "Transmit attempt timed out" << std::endl;
       break;
   }
-  ZWaveDriver::panConnectionBusy_ = false;
+  ZWaveDriver::pan_bonnection_busy_ = false;
 }
 
 static int hex2int(char c) {
@@ -435,16 +426,16 @@ static int hex2int(char c) {
 
 void ZWaveDriver::ParsePsk(const char* psk) {
   int val;
-  cfgPskLen_ = 0;
+  cfg_psk_len_ = 0;
   const char* s = psk;
-  while (*s && cfgPskLen_ < cfgPsk_.size()) {
+  while (*s && cfg_psk_len_ < cfg_psk_.size()) {
     val = hex2int(*s++);
     if (val < 0) break;
-    cfgPsk_[cfgPskLen_] = ((val)&0xf) << 4;
+    cfg_psk_[cfg_psk_len_] = ((val)&0xf) << 4;
     val = hex2int(*s++);
     if (val < 0) break;
-    cfgPsk_[cfgPskLen_] |= (val & 0xf);
-    cfgPskLen_++;
+    cfg_psk_[cfg_psk_len_] |= (val & 0xf);
+    cfg_psk_len_++;
   }
   std::cout << std::endl;
 }

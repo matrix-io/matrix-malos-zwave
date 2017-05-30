@@ -21,10 +21,6 @@
 #ifndef SRC_DRIVER_ZWAVE_H_
 #define SRC_DRIVER_ZWAVE_H_
 
-#include <memory>
-#include <valarray>
-#include <thread>
-
 extern "C" {
 #include <zwaveip/libzwaveip.h>
 #include <zwaveip/network_management.h>
@@ -34,6 +30,12 @@ extern "C" {
 }
 
 #include <matrix_malos/malos_base.h>
+
+#include <memory>
+#include <valarray>
+#include <thread>
+#include <string>
+
 #include "./src/driver.pb.h"
 
 const char kZWaveDriverName[] = "ZWave";
@@ -52,7 +54,7 @@ class ZWaveDriver : public MalosBase {
 
  private:
   // MALOS exposed methods
-  void Send(ZwaveMsg& msg);
+  void Send(const ZwaveMsg& msg);
   void AddNode();
   void RemoveNode();
   void SetDefault();
@@ -65,26 +67,24 @@ class ZWaveDriver : public MalosBase {
 
   static void ApplicationCommandHandler(zconnection* connection,
                                         const uint8_t* data, uint16_t datalen);
-  bool ConnectToGateway();
-
   void ParsePsk(const char* psk);
 
  public:
-  static bool panConnectionBusy_;
-  static uint8_t requestedKeys_;
-  static uint8_t csaInclusionRequested_;
+  static bool pan_bonnection_busy_;
+  static uint8_t requested_keys_;
+  static uint8_t csa_inclusion_requested_;
   // workaround for C callback compatibility
   static ZmqPusher* static_zqm_push_update_;
 
  private:
-  std::thread MDNSThread_;
-  zconnection* gwZipconnection_;
-  zconnection* panConnection_;
-  std::string destAddress_;
-  std::string serverIP_;
+  std::thread mdns_thread_;
+  zconnection* gw_zip_connection_;
+  zconnection* pan_connection_;
+  std::string dest_address_;
+  std::string server_ip_;
 
-  std::valarray<uint8_t> cfgPsk_;  // fixed size = 64
-  uint8_t cfgPskLen_;
+  std::valarray<uint8_t> cfg_psk_;  // fixed size = 64
+  uint8_t cfg_psk_len_;
 };
 }  // namespace matrix_malos
 
