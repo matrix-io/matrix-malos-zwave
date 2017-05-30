@@ -147,27 +147,27 @@ ZWaveDriver::ZWaveDriver()
 }
 
 bool ZWaveDriver::ProcessConfig(const DriverConfig& config) {
-  ZwaveMsg zwave(config.zwave());
+  ZWaveMsg zwave(config.zwave());
 
   static_zqm_push_update_ = zqm_push_update_.get();
 
   switch (zwave.operation()) {
-    case ZwaveMsg::SEND:
+    case ZWaveMsg::SEND:
       Send(zwave);
       break;
-    case ZwaveMsg::ADDNODE:
+    case ZWaveMsg::ADDNODE:
       AddNode();
       break;
-    case ZwaveMsg::REMOVENODE:
+    case ZWaveMsg::REMOVENODE:
       RemoveNode();
       break;
-    case ZwaveMsg::SETDEFAULT:
+    case ZWaveMsg::SETDEFAULT:
       SetDefault();
       break;
-    case ZwaveMsg::LIST:
+    case ZWaveMsg::LIST:
       List();
       break;
-    case ZwaveMsg::UNDEF:
+    case ZWaveMsg::UNDEF:
     default:
       // If this happens the program has to be fixed.
       std::cerr << "Invalid enum conversion. EnumMalosEyeDetectionType."
@@ -183,9 +183,9 @@ bool ZWaveDriver::SendUpdate() {
   return true;
 }
 
-void ZWaveDriver::Send(const ZwaveMsg& msg) {
-  std::string cmd_name = ZwaveCmdType_Name(msg.zwave_cmd().cmd());
-  std::string class_name = ZwaveClassType_Name(msg.zwave_cmd().zwclass());
+void ZWaveDriver::Send(const ZWaveMsg& msg) {
+  std::string cmd_name = ZWaveCmdType_Name(msg.zwave_cmd().cmd());
+  std::string class_name = ZWaveClassType_Name(msg.zwave_cmd().zwclass());
 
   const zw_command_class* p_class =
       zw_cmd_tool_get_class_by_name(class_name.c_str());
@@ -218,7 +218,7 @@ void ZWaveDriver::Send(const ZwaveMsg& msg) {
     return;
   }
 
-  if (msg.device() != dest_address_) {
+  if (msg.service_to_send() != dest_address_) {
     if (pan_connection_) {
       zclient_stop(pan_connection_);
       pan_connection_ = NULL;
@@ -226,14 +226,14 @@ void ZWaveDriver::Send(const ZwaveMsg& msg) {
     // FIXME: Use thread synchronization instead of sleep to avoid "Socket
     //        Read Error"
     std::this_thread::sleep_for(std::chrono::seconds(1));
-    pan_connection_ = ZipConnect(msg.device().c_str());
+    pan_connection_ = ZipConnect(msg.service_to_send().c_str());
   }
   if (!pan_connection_) {
     std::cerr << "Failed to connect to PAN node" << std::endl;
     dest_address_[0] = 0;
     return;
   }
-  dest_address_ = msg.device();
+  dest_address_ = msg.service_to_send();
   std::this_thread::sleep_for(std::chrono::seconds(1));
   zconnection_set_transmit_done_func(pan_connection_, TransmitDonePan);
   if (zconnection_send_async(pan_connection_, binary_command, binary_commandLen,
@@ -292,7 +292,7 @@ void ZWaveDriver::SetDefault() {
 }
 
 void ZWaveDriver::List() {
-  ZwaveMsg msg;
+  ZWaveMsg msg;
 
   std::cout << "List of discovered Z/IP services:" << std::endl;
   for (zip_service* n = zresource_get(); n; n = n->next) {
@@ -301,16 +301,16 @@ void ZWaveDriver::List() {
     std::cout << " infolen: " << std::dec << n->infolen << std::endl;
     std::cout << " info: " << std::endl;
 
-    ZwaveMsg_ZwaveNode* node = msg.add_node();
+    ZWaveMsg_ZWaveNode* node = msg.add_node();
     node->set_service_name(n->service_name);
 
     for (int i = 0; i < n->infolen; i++) {
-      if (ZwaveClassType_IsValid(n->info[i])) {
+      if (ZWaveClassType_IsValid(n->info[i])) {
         const std::string& class_name =
-            ZwaveClassType_Name(static_cast<ZwaveClassType>(n->info[i]));
+            ZWaveClassType_Name(static_cast<ZWaveClassType>(n->info[i]));
 
-        ZwaveClassType zwave_class;
-        ZwaveClassType_Parse(class_name, &zwave_class);
+        ZWaveClassType zwave_class;
+        ZWaveClassType_Parse(class_name, &zwave_class);
 
         node->add_zwave_class(zwave_class);
 
@@ -388,7 +388,7 @@ void ZWaveDriver::ApplicationCommandHandler(zconnection* /*zc*/,
       break;
   }
 
-  ZwaveMsg msg;
+  ZWaveMsg msg;
 
   if (datalen >= 3 && data[2])
     msg.set_result(true);

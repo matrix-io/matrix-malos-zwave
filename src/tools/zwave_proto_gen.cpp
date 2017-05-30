@@ -63,8 +63,8 @@ int main(int argc, char* argv[]) {
     }
   }
 
-  /* enum ZwaveClassType */
-  os << "enum ZwaveClassType {" << std::endl;
+  /* enum ZWaveClassType */
+  os << "enum ZWaveClassType {" << std::endl;
   os << " option allow_alias = true;" << std::endl;
   for (std::pair<int, std::string> cmd_class : class_id) {
     os << " " << cmd_class.second << " = " << cmd_class.first << ";"
@@ -72,9 +72,9 @@ int main(int argc, char* argv[]) {
   }
   os << "}" << std::endl << std::endl;
 
-  /* enum ZwaveCmdType */
+  /* enum ZWaveCmdType */
   int cmd_index = 0;
-  os << "enum ZwaveCmdType {" << std::endl;
+  os << "enum ZWaveCmdType {" << std::endl;
   os << " CMD_UNDEFINED = 0;" << std::endl;
   for (auto& cmd_name : cmd_names) {
     os << " " << cmd_name << " = " << ++cmd_index << ";" << std::endl;

@@ -54,7 +54,7 @@ class ZWaveDriver : public MalosBase {
 
  private:
   // MALOS exposed methods
-  void Send(const ZwaveMsg& msg);
+  void Send(const ZWaveMsg& msg);
   void AddNode();
   void RemoveNode();
   void SetDefault();
