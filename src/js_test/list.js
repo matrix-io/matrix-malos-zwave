@@ -21,8 +21,8 @@ var configSocket = zmq.socket('push')
 configSocket.connect('tcp://' + creator_ip + ':' + creator_servo_base_port /* config */)
 
 function listNodes() {
-  var zwave_cmd = new matrixMalosBuilder.ZwaveMsg;
-  zwave_cmd.set_operation(matrixMalosBuilder.ZwaveMsg.ZwaveOperations.LIST);
+  var zwave_cmd = new matrixMalosBuilder.ZWaveMsg;
+  zwave_cmd.set_operation(matrixMalosBuilder.ZWaveMsg.ZWaveOperations.LIST);
 
   var config = new matrixMalosBuilder.DriverConfig;
   config.set_zwave(zwave_cmd);

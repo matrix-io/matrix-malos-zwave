@@ -245,50 +245,36 @@ void ZWaveDriver::Send(const ZWaveMsg& msg) {
 void ZWaveDriver::AddNode() {
   net_mgmt_learn_mode_start();
 
-  int idx = 0;
-  static uint8_t buf[200];
-
   const uint8_t COMMAND_CLASS_NETWORK_MANAGEMENT_INCLUSION = 0x34;
   const uint8_t NODE_ADD = 0x01;
 
-  buf[idx++] = COMMAND_CLASS_NETWORK_MANAGEMENT_INCLUSION;
-  buf[idx++] = NODE_ADD;
-  buf[idx++] = get_unique_seq_no();
-  buf[idx++] = 0;
-  buf[idx++] = 0x07; /* ADD_NODE_S2 */
-  buf[idx++] = 0;    /* Normal power, no NWI */
+  static uint8_t buf[] = {
+      COMMAND_CLASS_NETWORK_MANAGEMENT_INCLUSION, NODE_ADD, get_unique_seq_no(),
+      0, 0x07 /* ADD_NODE_S2 */, 0 /* Normal power, no NWI */
+  };
 
-  zconnection_send_async(gw_zip_connection_, buf, idx, 0);
+  zconnection_send_async(gw_zip_connection_, buf, sizeof(buf), 0);
 }
 
 void ZWaveDriver::RemoveNode() {
-  int idx = 0;
-  static uint8_t buf[200];
-
   const uint8_t COMMAND_CLASS_NETWORK_MANAGEMENT_INCLUSION = 0x34;
   const uint8_t NODE_REMOVE = 0x03;
 
-  buf[idx++] = COMMAND_CLASS_NETWORK_MANAGEMENT_INCLUSION;
-  buf[idx++] = NODE_REMOVE;
-  buf[idx++] = get_unique_seq_no();
-  buf[idx++] = 0;
-  buf[idx++] = 0x01; /* REMOVE_NODE_ANY */
-
-  zconnection_send_async(gw_zip_connection_, buf, idx, 0);
+  static uint8_t buf[] = {
+      COMMAND_CLASS_NETWORK_MANAGEMENT_INCLUSION, NODE_REMOVE,
+      get_unique_seq_no(), 0, 0x01 /* REMOVE_NODE_ANY */
+  };
+  zconnection_send_async(gw_zip_connection_, buf, sizeof(buf), 0);
 }
 
 void ZWaveDriver::SetDefault() {
-  int idx = 0;
-  static uint8_t buf[200];
-
   const uint8_t COMMAND_CLASS_NETWORK_MANAGEMENT_BASIC = 0x4D;
   const uint8_t DEFAULT_SET = 0x06;
 
-  buf[idx++] = COMMAND_CLASS_NETWORK_MANAGEMENT_BASIC;
-  buf[idx++] = DEFAULT_SET;
-  buf[idx++] = get_unique_seq_no();
+  static uint8_t buf[] = {COMMAND_CLASS_NETWORK_MANAGEMENT_BASIC, DEFAULT_SET,
+                          get_unique_seq_no()};
 
-  zconnection_send_async(gw_zip_connection_, buf, idx, 0);
+  zconnection_send_async(gw_zip_connection_, buf, sizeof(buf), 0);
 }
 
 void ZWaveDriver::List() {
