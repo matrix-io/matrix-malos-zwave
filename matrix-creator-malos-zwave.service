@@ -1,9 +1,9 @@
 [Unit]
-Description=ZigBee Matrix Abstraction Layer for OS
+Description=ZWave Matrix Abstraction Layer for OS
 
 [Service]
 Type=simple
-ExecStart=/usr/bin/malos_zigbee
+ExecStart=/usr/bin/malos_zwave
 
 [Install]
 WantedBy=multi-user.target
