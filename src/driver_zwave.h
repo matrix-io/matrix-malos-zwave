@@ -49,7 +49,7 @@ class ZWaveDriver : public MalosBase {
   // Read configuration of LEDs (from the outside world).
   bool ProcessConfig(const DriverConfig& config) override;
 
-  // Send updates. Checks for new messages from Zigbee.
+  // Send updates. Checks for new messages from ZWave.
   bool SendUpdate() override;
 
  private:
