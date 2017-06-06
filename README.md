@@ -25,7 +25,7 @@ make && sudo make install
 
 ## matrix-malos-zwave
 ```
-sudo apt install libreadline-dev libgflags-dev
+sudo apt install libreadline-dev libgflags-dev libzwaveip-dev
 ```
 
 ```
