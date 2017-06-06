@@ -1,4 +1,4 @@
-Source: matrix-creator-malos-zwave
+Source: matrix-malos-zwave
 Section: embedded
 Priority: optional
 Maintainer: Admobilize <info@admobilize.com>
@@ -6,7 +6,7 @@ Build-Depends: debhelper (>= 9), cmake
 Standards-Version: 3.9.5
 Homepage: https://github.com/matrix-io/matrix-malos-zwave
 
-Package: matrix-creator-malos-zwave
+Package: matrix-malos-zwave
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}, libmatrix-malos-dev, libzwaveip, zipgateway
 Description: Allows queries to MATRIX Creator hardware via ZMQ.
