@@ -3,8 +3,8 @@ Description=ZWave Matrix Abstraction Layer for OS
 
 [Service]
 Type=simple
-ExecStart=/usr/bin/malos_zwave
+ExecStart=/usr/share/admobilize/matrix-creator/matrix-malos-zwave.sh
 
 [Install]
 WantedBy=multi-user.target
-After=zipgateway
+After=zipgateway.service
