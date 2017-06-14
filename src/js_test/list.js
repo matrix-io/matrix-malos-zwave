@@ -26,7 +26,8 @@ function listNodes() {
 
   var config = new matrixMalosBuilder.DriverConfig;
   config.set_zwave(zwave_cmd);
-  configSocket.send(config.encode().toBuffer());
+  return configSocket.send(config.encode().toBuffer());
 }
 
-listNodes()
+console.log(require('util').inspect(listNodes(), { showHidden: true, depth: null }));
+//listNodes();
