@@ -24,6 +24,7 @@
 
 #include <gflags/gflags.h>
 
+#include <valarray>
 #include <chrono>
 #include <iostream>
 #include <string>
@@ -295,10 +296,43 @@ void ZWaveDriver::List() {
         const std::string& class_name =
             ZWaveClassType_Name(static_cast<ZWaveClassType>(n->info[i]));
 
-        ZWaveClassType zwave_class;
-        ZWaveClassType_Parse(class_name, &zwave_class);
+        ZWaveClassType zwave_class_type;
+        ZWaveClassType_Parse(class_name, &zwave_class_type);
 
-        node->add_zwave_class(zwave_class);
+        ZWaveMsg_ZWaveClassInfo* p_zwave_class = node->add_zwave_class();
+
+        p_zwave_class->set_zwave_class(zwave_class_type);
+
+        const zw_command_class* p_cmd_class =
+            zw_cmd_tool_get_class_by_name(class_name.c_str());
+
+        std::valarray<const char*> cmd_names(512);
+
+        int number_of_commands =
+            zw_cmd_tool_get_cmd_names(p_cmd_class, &cmd_names[0]);
+
+        for (auto& cmd_name : std::valarray<const char*>(
+                 cmd_names[std::slice(0, number_of_commands, 1)])) {
+          ZWaveCmdType zwave_cmd_type;
+          ZWaveCmdType_Parse(cmd_name, &zwave_cmd_type);
+
+          ZWaveMsg_ZWaveCommandInfo* zwave_cmd_info =
+              p_zwave_class->add_command();
+          zwave_cmd_info->set_cmd(zwave_cmd_type);
+
+          std::valarray<const char*> param_names(512);
+
+          const zw_command* p_zw_command =
+              zw_cmd_tool_get_cmd_by_name(p_cmd_class, cmd_name);
+
+          int number_of_params =
+              zw_cmd_tool_get_param_names(p_zw_command, &param_names[0]);
+
+          for (auto& param_name : std::valarray<const char*>(
+                   param_names[std::slice(0, number_of_params, 1)])) {
+            zwave_cmd_info->add_param(param_name);
+          }
+        }
 
         std::cout << "  " << std::hex << static_cast<int>(n->info[i]) << " "
                   << class_name << std::endl;
