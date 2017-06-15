@@ -22,6 +22,8 @@
 
 #include "./src/driver.pb.h"
 
+#include <arpa/inet.h>
+
 #include <gflags/gflags.h>
 
 #include <valarray>
@@ -145,6 +147,8 @@ ZWaveDriver::ZWaveDriver()
   requested_keys_ = 0;
   csa_inclusion_requested_ = 0;
   net_mgmt_init(gw_zip_connection_);
+
+  pan_connection_ = NULL;
 }
 
 bool ZWaveDriver::ProcessConfig(const DriverConfig& config) {
@@ -356,15 +360,34 @@ zconnection* ZWaveDriver::ZipConnect(const char* remote_addr) {
               << std::endl;
     return 0;
   }
+  char address[256];
+  memset(address, 0, 256);
+  memcpy(address, remote_addr, strlen(remote_addr));
 
+  for (zip_service* n = zresource_get(); n; n = n->next) {
+    const char* res;
+    /* Try connecting via IPv6 first */
+    res = inet_ntop(n->addr6.sin6_family, &n->addr6.sin6_addr, address,
+                    sizeof(struct sockaddr_in6));
+    if (!res) {
+      /* fallback to IPv4 */
+      res = inet_ntop(n->addr.sin_family, &n->addr.sin_addr, address,
+                      sizeof(struct sockaddr_in));
+      if (!res) {
+        std::cerr << "Invalid destination address." << std::endl;
+        return 0;
+      }
+    }
+  }
   zconnection* zc;
 
-  zc = zclient_start(remote_addr, 41230, reinterpret_cast<char*>(&cfg_psk_[0]),
+  zc = zclient_start(address, 41230, reinterpret_cast<char*>(&cfg_psk_[0]),
                      cfg_psk_len_, ApplicationCommandHandler);
   if (zc == 0) {
     std::cout << "Error connecting to " << remote_addr << std::endl;
   } else {
-    std::cout << "ZWaveDriver connected to " << remote_addr << std::endl;
+    std::cout << "ZWaveDriver connected to " << remote_addr << "-" << address
+              << std::endl;
   }
   return zc;
 }
