@@ -1,3 +1,9 @@
+matrix-malos-zwave (0.1.1) unstable; urgency=medium
+
+  * Introspection  improved.
+
+ --  Andres Calderon <andres.calderon@admobilize.com>  Wed, 21 Jun 2017 18:55:34 +0000
+
 matrix-malos-zwave (0.1) unstable; urgency=medium
 
   * Initial release.
