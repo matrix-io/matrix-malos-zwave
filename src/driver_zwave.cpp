@@ -22,8 +22,11 @@
 
 #include "./src/driver.pb.h"
 
+#include <arpa/inet.h>
+
 #include <gflags/gflags.h>
 
+#include <valarray>
 #include <chrono>
 #include <iostream>
 #include <string>
@@ -144,6 +147,8 @@ ZWaveDriver::ZWaveDriver()
   requested_keys_ = 0;
   csa_inclusion_requested_ = 0;
   net_mgmt_init(gw_zip_connection_);
+
+  pan_connection_ = NULL;
 }
 
 bool ZWaveDriver::ProcessConfig(const DriverConfig& config) {
@@ -295,10 +300,43 @@ void ZWaveDriver::List() {
         const std::string& class_name =
             ZWaveClassType_Name(static_cast<ZWaveClassType>(n->info[i]));
 
-        ZWaveClassType zwave_class;
-        ZWaveClassType_Parse(class_name, &zwave_class);
+        ZWaveClassType zwave_class_type;
+        ZWaveClassType_Parse(class_name, &zwave_class_type);
 
-        node->add_zwave_class(zwave_class);
+        ZWaveMsg_ZWaveClassInfo* p_zwave_class = node->add_zwave_class();
+
+        p_zwave_class->set_zwave_class(zwave_class_type);
+
+        const zw_command_class* p_cmd_class =
+            zw_cmd_tool_get_class_by_name(class_name.c_str());
+
+        std::valarray<const char*> cmd_names(512);
+
+        int number_of_commands =
+            zw_cmd_tool_get_cmd_names(p_cmd_class, &cmd_names[0]);
+
+        for (auto& cmd_name : std::valarray<const char*>(
+                 cmd_names[std::slice(0, number_of_commands, 1)])) {
+          ZWaveCmdType zwave_cmd_type;
+          ZWaveCmdType_Parse(cmd_name, &zwave_cmd_type);
+
+          ZWaveMsg_ZWaveCommandInfo* zwave_cmd_info =
+              p_zwave_class->add_command();
+          zwave_cmd_info->set_cmd(zwave_cmd_type);
+
+          std::valarray<const char*> param_names(512);
+
+          const zw_command* p_zw_command =
+              zw_cmd_tool_get_cmd_by_name(p_cmd_class, cmd_name);
+
+          int number_of_params =
+              zw_cmd_tool_get_param_names(p_zw_command, &param_names[0]);
+
+          for (auto& param_name : std::valarray<const char*>(
+                   param_names[std::slice(0, number_of_params, 1)])) {
+            zwave_cmd_info->add_param(param_name);
+          }
+        }
 
         std::cout << "  " << std::hex << static_cast<int>(n->info[i]) << " "
                   << class_name << std::endl;
@@ -322,15 +360,34 @@ zconnection* ZWaveDriver::ZipConnect(const char* remote_addr) {
               << std::endl;
     return 0;
   }
+  char address[256];
+  memset(address, 0, 256);
+  memcpy(address, remote_addr, strlen(remote_addr));
 
+  for (zip_service* n = zresource_get(); n; n = n->next) {
+    const char* res;
+    /* Try connecting via IPv6 first */
+    res = inet_ntop(n->addr6.sin6_family, &n->addr6.sin6_addr, address,
+                    sizeof(struct sockaddr_in6));
+    if (!res) {
+      /* fallback to IPv4 */
+      res = inet_ntop(n->addr.sin_family, &n->addr.sin_addr, address,
+                      sizeof(struct sockaddr_in));
+      if (!res) {
+        std::cerr << "Invalid destination address." << std::endl;
+        return 0;
+      }
+    }
+  }
   zconnection* zc;
 
-  zc = zclient_start(remote_addr, 41230, reinterpret_cast<char*>(&cfg_psk_[0]),
+  zc = zclient_start(address, 41230, reinterpret_cast<char*>(&cfg_psk_[0]),
                      cfg_psk_len_, ApplicationCommandHandler);
   if (zc == 0) {
     std::cout << "Error connecting to " << remote_addr << std::endl;
   } else {
-    std::cout << "ZWaveDriver connected to " << remote_addr << std::endl;
+    std::cout << "ZWaveDriver connected to " << remote_addr << "-" << address
+              << std::endl;
   }
   return zc;
 }
