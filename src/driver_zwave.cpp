@@ -20,7 +20,7 @@
 
 #include "./driver_zwave.h"
 
-#include "./src/driver.pb.h"
+#include "../protocol-buffers/matrixlabs/driver.pb.h"
 
 #include <arpa/inet.h>
 
@@ -44,6 +44,8 @@ DEFINE_string(xml, "ZWave_custom_cmd_classes.xml", "XML ZWave classes");
 #define SECURITY_2_ACCESS_CLASS_KEY 0x04
 #define SECURITY_2_AUTHENTICATED_CLASS_KEY 0x02
 #define SECURITY_2_UNAUTHENTICATED_CLASS_KEY 0x01
+
+namespace pb = matrixlabs::malos::v1;
 
 extern "C" {
 uint8_t get_unique_seq_no(void) {
@@ -151,28 +153,28 @@ ZWaveDriver::ZWaveDriver()
   pan_connection_ = NULL;
 }
 
-bool ZWaveDriver::ProcessConfig(const DriverConfig& config) {
-  ZWaveMsg zwave(config.zwave());
+bool ZWaveDriver::ProcessConfig(const pb::driver::DriverConfig& config) {
+  pb::driver::ZWaveMsg zwave(config.zwave());
 
   static_zqm_push_update_ = zqm_push_update_.get();
 
   switch (zwave.operation()) {
-    case ZWaveMsg::SEND:
+    case pb::driver::ZWaveMsg::SEND:
       Send(zwave);
       break;
-    case ZWaveMsg::ADDNODE:
+    case pb::driver::ZWaveMsg::ADDNODE:
       AddNode();
       break;
-    case ZWaveMsg::REMOVENODE:
+    case pb::driver::ZWaveMsg::REMOVENODE:
       RemoveNode();
       break;
-    case ZWaveMsg::SETDEFAULT:
+    case pb::driver::ZWaveMsg::SETDEFAULT:
       SetDefault();
       break;
-    case ZWaveMsg::LIST:
+    case pb::driver::ZWaveMsg::LIST:
       List();
       break;
-    case ZWaveMsg::UNDEF:
+    case pb::driver::ZWaveMsg::UNDEF:
     default:
       // If this happens the program has to be fixed.
       std::cerr << "Invalid enum conversion. EnumMalosEyeDetectionType."
@@ -188,7 +190,7 @@ bool ZWaveDriver::SendUpdate() {
   return true;
 }
 
-void ZWaveDriver::Send(const ZWaveMsg& msg) {
+void ZWaveDriver::Send(const pb::driver::ZWaveMsg& msg) {
   std::string cmd_name = ZWaveCmdType_Name(msg.zwave_cmd().cmd());
   std::string class_name = ZWaveClassType_Name(msg.zwave_cmd().zwclass());
 
@@ -283,7 +285,7 @@ void ZWaveDriver::SetDefault() {
 }
 
 void ZWaveDriver::List() {
-  ZWaveMsg msg;
+  pb::driver::ZWaveMsg msg;
 
   std::cout << "List of discovered Z/IP services:" << std::endl;
   for (zip_service* n = zresource_get(); n; n = n->next) {
@@ -292,18 +294,19 @@ void ZWaveDriver::List() {
     std::cout << " infolen: " << std::dec << n->infolen << std::endl;
     std::cout << " info: " << std::endl;
 
-    ZWaveMsg_ZWaveNode* node = msg.add_node();
+    pb::driver::ZWaveMsg_ZWaveNode* node = msg.add_node();
     node->set_service_name(n->service_name);
 
     for (int i = 0; i < n->infolen; i++) {
-      if (ZWaveClassType_IsValid(n->info[i])) {
-        const std::string& class_name =
-            ZWaveClassType_Name(static_cast<ZWaveClassType>(n->info[i]));
+      if (pb::driver::ZWaveClassType_IsValid(n->info[i])) {
+        const std::string& class_name = pb::driver::ZWaveClassType_Name(
+            static_cast<pb::driver::ZWaveClassType>(n->info[i]));
 
-        ZWaveClassType zwave_class_type;
-        ZWaveClassType_Parse(class_name, &zwave_class_type);
+        pb::driver::ZWaveClassType zwave_class_type;
+        pb::driver::ZWaveClassType_Parse(class_name, &zwave_class_type);
 
-        ZWaveMsg_ZWaveClassInfo* p_zwave_class = node->add_zwave_class();
+        pb::driver::ZWaveMsg_ZWaveClassInfo* p_zwave_class =
+            node->add_zwave_class();
 
         p_zwave_class->set_zwave_class(zwave_class_type);
 
@@ -317,10 +320,10 @@ void ZWaveDriver::List() {
 
         for (auto& cmd_name : std::valarray<const char*>(
                  cmd_names[std::slice(0, number_of_commands, 1)])) {
-          ZWaveCmdType zwave_cmd_type;
-          ZWaveCmdType_Parse(cmd_name, &zwave_cmd_type);
+          pb::driver::ZWaveCmdType zwave_cmd_type;
+          pb::driver::ZWaveCmdType_Parse(cmd_name, &zwave_cmd_type);
 
-          ZWaveMsg_ZWaveCommandInfo* zwave_cmd_info =
+          pb::driver::ZWaveMsg_ZWaveCommandInfo* zwave_cmd_info =
               p_zwave_class->add_command();
           zwave_cmd_info->set_cmd(zwave_cmd_type);
 
@@ -431,7 +434,7 @@ void ZWaveDriver::ApplicationCommandHandler(zconnection* /*zc*/,
       break;
   }
 
-  ZWaveMsg msg;
+  pb::driver::ZWaveMsg msg;
 
   if (datalen >= 3 && data[2])
     msg.set_result(true);

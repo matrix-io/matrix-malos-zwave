@@ -49,26 +49,22 @@ if(AVAHI_LIBRARY-CLIENT)
 endif()
 
 
-# driver.proto
-PROTOBUF_GENERATE_CPP(MALOS_PROTO_SRC MALOS_PROTO_HEADER ../protocol-buffers/malos/driver.proto)
-
-# zwave_commands.proto
-PROTOBUF_GENERATE_CPP(ZWAVE_COMMANDS_PROTO_SRC ZWAVE_COMMANDS_PROTO_HEADER ../protocol-buffers/malos/zwave_commands.proto)
+set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
 include_directories(
   ${LIBXML2_INCLUDE_DIR}
-  ${PROJECT_BINARY_DIR} # Protos.
-  ${PROTOBUF_INCLUDE_DIRS})
+  ${PROJECT_BINARY_DIR})
 
 set(malos_zwave_src
   malos_zwave.cpp
   driver_zwave.cpp 
-  ${MALOS_PROTO_SRC}
-  ${ZWAVE_COMMANDS_PROTO_SRC}
 )
+
+link_directories(${CMAKE_BINARY_DIR}/protocol-buffers/matrixlabs)
 
 add_executable(malos_zwave ${malos_zwave_src})
   set_property(TARGET malos_zwave PROPERTY CXX_STANDARD 11)
+  target_link_libraries(malos_zwave build_protos)
   target_link_libraries(malos_zwave ${PROTOBUF_LIBRARY})
   target_link_libraries(malos_zwave ${ZWAVEIP_LIB})
   target_link_libraries(malos_zwave ${ZWCMDTOOL_LIB})
