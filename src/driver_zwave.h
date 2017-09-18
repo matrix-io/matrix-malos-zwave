@@ -36,9 +36,11 @@ extern "C" {
 #include <thread>
 #include <string>
 
-#include "./src/driver.pb.h"
+#include "../protocol-buffers/matrixlabs/driver.pb.h"
 
 const char kZWaveDriverName[] = "ZWave";
+
+namespace pb = matrixlabs::malos::v1;
 
 namespace matrix_malos {
 
@@ -47,14 +49,14 @@ class ZWaveDriver : public MalosBase {
   ZWaveDriver();
 
   // Read configuration of LEDs (from the outside world).
-  bool ProcessConfig(const DriverConfig& config) override;
+  bool ProcessConfig(const pb::driver::DriverConfig& config) override;
 
   // Send updates. Checks for new messages from ZWave.
   bool SendUpdate() override;
 
  private:
   // MALOS exposed methods
-  void Send(const ZWaveMsg& msg);
+  void Send(const pb::driver::ZWaveMsg& msg);
   void AddNode();
   void RemoveNode();
   void SetDefault();
