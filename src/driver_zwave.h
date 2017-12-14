@@ -30,17 +30,16 @@ extern "C" {
 }
 
 #include <matrix_malos/malos_base.h>
+#include <matrix_io/malos/v1/driver.pb.h>
 
 #include <memory>
 #include <valarray>
 #include <thread>
 #include <string>
 
-#include "../protocol-buffers/matrixlabs/driver.pb.h"
-
 const char kZWaveDriverName[] = "ZWave";
 
-namespace pb = matrixlabs::malos::v1;
+namespace pb = matrix_io::malos::v1;
 
 namespace matrix_malos {
 
@@ -56,7 +55,7 @@ class ZWaveDriver : public MalosBase {
 
  private:
   // MALOS exposed methods
-  void Send(const pb::driver::ZWaveMsg& msg);
+  void Send(const pb::comm::ZWaveMsg& msg);
   void AddNode();
   void RemoveNode();
   void SetDefault();
