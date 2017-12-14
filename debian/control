@@ -7,6 +7,8 @@ Standards-Version: 3.9.5
 Homepage: https://github.com/matrix-io/matrix-malos-zwave
 
 Package: matrixio-malos-zwave
+Conflicts: matrix-malos-zwave
+Replaces: matrix-malos-zwave
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}, libmatrixio-malos-dev, matrixio-libzwaveip, matrixio-zipgateway
 Description: Allows queries to MATRIX Creator hardware via ZMQ.
