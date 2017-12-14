@@ -1,6 +1,6 @@
 #!/bin/bash -e
 
 echo "Enabling MALOS Zwave service"
-systemctl enable matrix-malos-zwave
+systemctl enable matrixio-malos-zwave
 
 echo "Please restart your Raspberry Pi after installation"
