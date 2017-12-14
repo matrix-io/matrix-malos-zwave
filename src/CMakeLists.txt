@@ -26,6 +26,7 @@ FIND_LIBRARY(ZWAVEIP_LIB NAMES zwaveip)
 FIND_LIBRARY(ZWCMDTOOL_LIB NAMES zw_cmd_tool)
 FIND_LIBRARY(ZWPARSE_LIB NAMES zw_parse_xml)
 FIND_LIBRARY(GFLAGS_LIB NAMES gflags)
+FIND_LIBRARY(MATRIX_PROTOS_LIB NAMES matrixio_protos)
 
 message(STATUS "ZMQ found => " "${ZMQ_LIB}")
 message(STATUS "MATRIX LIB found => " "${MATRIX_LIB}")
@@ -33,6 +34,8 @@ message(STATUS "MATRIX ZMQ LIB found => " "${MATRIX_ZMQ_LIB}")
 message(STATUS "ZWAVEIP found => " "${ZWAVEIP_LIB}")
 message(STATUS "XML2 found =>" "${LIBXML2_LIBRARIES}")
 message(STATUS "gflags found =>" "${GFLAGS_LIB}") 
+message(STATUS "MATRIX_PROTOS_LIB LIB found => " "${MATRIX_PROTOS_LIB}")
+
 
 FIND_LIBRARY(AVAHI_LIBRARY-COMMON NAMES avahi-common)
 FIND_LIBRARY(AVAHI_LIBRARY-CLIENT NAMES avahi-client)
@@ -60,17 +63,15 @@ set(malos_zwave_src
   driver_zwave.cpp 
 )
 
-link_directories(${CMAKE_BINARY_DIR}/protocol-buffers/matrixlabs)
-
 add_executable(malos_zwave ${malos_zwave_src})
   set_property(TARGET malos_zwave PROPERTY CXX_STANDARD 11)
-  target_link_libraries(malos_zwave build_protos)
+  target_link_libraries(malos_zwave ${MATRIX_LIB})
+  target_link_libraries(malos_zwave ${MATRIX_PROTOS_LIB})
   target_link_libraries(malos_zwave ${PROTOBUF_LIBRARY})
   target_link_libraries(malos_zwave ${ZWAVEIP_LIB})
   target_link_libraries(malos_zwave ${ZWCMDTOOL_LIB})
   target_link_libraries(malos_zwave ${ZWPARSE_LIB})
   target_link_libraries(malos_zwave ${CMAKE_THREAD_LIBS_INIT})
-  target_link_libraries(malos_zwave ${MATRIX_LIB})
   target_link_libraries(malos_zwave ${MATRIX_ZMQ_LIB} ${ZMQ_LIB})
   target_link_libraries(malos_zwave ${OPENSSL_LIBRARIES})
   target_link_libraries(malos_zwave ${READLINE_LIB})
