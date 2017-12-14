@@ -1,8 +1,8 @@
 pipeline:
   build-debs:
     when:
-      branch: master
-      event: [ push, pull_request, tag ]
+      branch: [master, kp/drone]
+      event: [ push, tag ]
     image: gcr.io/admobilize-testing/builder-qemu:latest
     privileged: true
     mountimg: ${MOUNTIMG}
@@ -12,14 +12,14 @@ pipeline:
       export COMPONENT=$([ "${DRONE_BUILD_EVENT}" = "tag" ] && echo "main" || echo "unstable")
       echo "deb https://apt.matrix.one/raspbian ${CODENAME} $COMPONENT" > /etc/apt/sources.list.d/matrixlabs.list
       apt-get update
-      apt-get install --yes libmatrixio-malos-dev libmatrixio-creator-hal-dev
+      apt-get install --yes libmatrixio-malos-dev libreadline-dev matrixio-libzwaveip-dev
       debuild -us -uc -b
       mv ../*.deb .
 
   upload-debs:
     when:
       branch: master
-      event: [ push, pull_request, tag ]
+      event: [ push, tag ]
     image: gcr.io/admobilize-testing/gce-builder:latest
     secrets: [aws_access_key_id, aws_secret_access_key, gpg_key, gpg_pass]
     commands:
@@ -32,8 +32,8 @@ pipeline:
       - export PKG_VER=$(dpkg-parsechangelog --show-field Version -ldebian/changelog)
 
       # Upload packages
-      - mv matrixio-malos_$${PKG_VER}_armhf.deb 
-           matrixio-malos_${DISTRIBUTION}-${CODENAME}-$${PKG_VER}-$${COMPONENT}_armhf.deb
+      - mv matrixio-malos-zwave_$${PKG_VER}_armhf.deb 
+           matrixio-malos-zwave_${DISTRIBUTION}-${CODENAME}-$${PKG_VER}-$${COMPONENT}_armhf.deb
 
       - echo "$${GPG_PASS}" | deb-s3 upload --bucket apt.matrix.one 
         --prefix $DISTRIBUTION
@@ -43,7 +43,7 @@ pipeline:
         --secret-access-key $${AWS_SECRET_ACCESS_KEY}
         --sign info@matrix.one 
         --gpg-options="--batch --passphrase-fd 0"
-        matrixio-malos_${DISTRIBUTION}-${CODENAME}-$${PKG_VER}-$${COMPONENT}_armhf.deb
+        matrixio-malos-zwave_${DISTRIBUTION}-${CODENAME}-$${PKG_VER}-$${COMPONENT}_armhf.deb
 
       # Render the notification template for the notify-slack step
       - j2 --var-delimiter '%%' .drone/slack.tpl > notification.tpl
@@ -56,7 +56,7 @@ pipeline:
     when:
       status: [ success, failure ]
       branch: master
-      event: [ push, pull_request, tag ]
+      event: [ push, tag ]
     template: file:///drone/src/github.com/matrix-io/matrix-creator-malos/notification.tpl
 
 matrix:

@@ -1,0 +1,3 @@
+scripts/matrixio-malos-zwave.service lib/systemd/system
+scripts/matrixio-malos-zwave.sh usr/share/admobilize/matrix-creator
+src/xml/ZWave_custom_cmd_classes.xml etc/zwave
