@@ -22,11 +22,12 @@
 #include <matrix_malos/driver_manager.h>
 #include "./driver_zwave.h"
 
-#include "../protocol-buffers/matrixlabs/driver.pb.h"
 
 const int kBasePort = 50000;
 
 const char kUnsecureBindScope[] = "*";
+
+namespace pb = matrix_io::malos::v1;
 
 namespace matrix_malos {
 
