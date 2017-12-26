@@ -1,10 +1,16 @@
-matrix-malos-zwave (0.1.1) unstable; urgency=medium
+matrixio-malos-zwave (0.1.2) unstable; urgency=medium
+
+  * Update protobuffer implmentation. 
+
+ --  Kevin Patino <kevin.patino@admobilize.com>  Wed, 21 Jun 2017 18:55:34 +0000
+
+matrixio-malos-zwave (0.1.1) unstable; urgency=medium
 
   * Introspection  improved.
 
  --  Andres Calderon <andres.calderon@admobilize.com>  Wed, 21 Jun 2017 18:55:34 +0000
 
-matrix-malos-zwave (0.1) unstable; urgency=medium
+matrixio-malos-zwave (0.1) unstable; urgency=medium
 
   * Initial release.
 

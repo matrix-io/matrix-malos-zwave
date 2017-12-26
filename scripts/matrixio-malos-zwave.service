@@ -4,7 +4,7 @@ After=zipgateway.service
 
 [Service]
 Type=simple
-ExecStart=/usr/share/admobilize/matrix-creator/matrix-malos-zwave.sh
+ExecStart=/usr/share/admobilize/matrixio-devices/matrix-creator/matrixio-malos-zwave.sh
 Restart=always
 RestartSec=3
 
