@@ -87,7 +87,6 @@ cmake ..
 -- Generating done
 -- Build files have been written to: /home/pi/github/matrix-malos-zwave/build
 make
-make
 Scanning dependencies of target malos_zwave
 [ 33%] Building CXX object src/CMakeFiles/malos_zwave.dir/malos_zwave.cpp.o
 [ 66%] Building CXX object src/CMakeFiles/malos_zwave.dir/driver_zwave.cpp.o
