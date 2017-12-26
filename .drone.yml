@@ -65,17 +65,17 @@ pipeline:
       status: [ success, failure ]
       branch: [master, dev]
       event: [ push, tag ]
-    template: file:///drone/src/github.com/matrix-io/matrix-creator-malos/notification.tpl
+    template: file:///drone/src/github.com/matrix-io/matrix-malos-zwave/notification.tpl
 
 matrix:
   include: 
     - CODENAME: jessie
       DISTRIBUTION: raspbian
       MOUNTOFFSET: 48234496
-      MOUNTDIR: /drone/src/github.com/matrix-io/matrix-creator-malos
+      MOUNTDIR: /drone/src/github.com/matrix-io/matrix-malos-zwave
       MOUNTIMG: https://storage.googleapis.com/raspbian-images/2017-07-05-raspbian-jessie-debuild.img.gz
     - CODENAME: stretch
       MOUNTOFFSET: 48234496
-      MOUNTDIR: /drone/src/github.com/matrix-io/matrix-creator-malos
+      MOUNTDIR: /drone/src/github.com/matrix-io/matrix-malos-zwave
       DISTRIBUTION: raspbian
       MOUNTIMG: https://storage.googleapis.com/raspbian-images/2017-08-16-raspbian-stretch-debuild.img.gz
