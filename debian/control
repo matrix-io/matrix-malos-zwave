@@ -1,14 +1,16 @@
-Source: matrix-malos-zwave
+Source: matrixio-malos-zwave
 Section: embedded
 Priority: optional
 Maintainer: Admobilize <info@admobilize.com>
-Build-Depends: debhelper (>= 9), cmake
+Build-Depends: debhelper (>= 9), cmake, libmatrixio-malos-dev, libreadline-dev, matrixio-libzwaveip-dev, libxml2-dev, libbsd-dev, libncurses5-dev, libavahi-client-dev, avahi-utils, libreadline-dev, libgflags-dev
 Standards-Version: 3.9.5
 Homepage: https://github.com/matrix-io/matrix-malos-zwave
 
-Package: matrix-malos-zwave
+Package: matrixio-malos-zwave
+Conflicts: matrix-malos-zwave
+Replaces: matrix-malos-zwave
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}, libmatrix-malos-dev, libzwaveip, zipgateway
+Depends: ${shlibs:Depends}, ${misc:Depends}, libmatrixio-malos, matrixio-libzwaveip, matrixio-zipgateway, libgflags2v5
 Description: Allows queries to MATRIX Creator hardware via ZMQ.
  Matrix Creator (https://creator.matrix.one) is a board that can be added
  to a Raspberry Pi v2 or v3. This board has many sensors. This program
