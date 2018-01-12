@@ -133,15 +133,6 @@ malos-zwave
 ### Protocol
 [UPDATE]
 
-<img src="https://github.com/matrix-io/matrix-malos-zwave/blob/master/imgs/zwave_creator_software.png" align="right" width="500" >
-
-We have developed our own implementation of ZM5202 Programmer software. It uses the SPI bus in the Raspberry Pi, then through the FPGA we access the ZM5202 SPI bus. The capabilities are:
-
-+ Read/Write the NVR Memory into the ZM5202
-+ Read/Write ZM5202 Flash Memory
-+ Burn any .hex file into the  ZM5202 Flash Memory
-+ Read/Write NVM SPI memory (third party software)
-
 First of all, you need to know that there are some steps to follow to work:
 
 1. Start the Z/IP Gateway
@@ -150,21 +141,11 @@ First of all, you need to know that there are some steps to follow to work:
 4. Include the node (Device)
 5. Control the node (Device)
 
-But these steps are following the Z/IP Gateway from Sigma Design, which we use it as a design reference.  Our middleware communicates with the gateway using [libzwaveip](https://github.com/matrix-io/libzwaveip) and it is based on the public examples in that repository. The libzwaveip is a library making it easier to control Z-Wave devices from an IP network via a Z/IP Gateway. Also we use SERIAL API (SDK 6.71). We run the Z/IP Gateway on the Raspberry Pi and communicate with the gateway using the libzwaveip. Our Software Architecture follows this specs:
+But these steps are following the Z/IP Gateway from Sigma Design, which we use it as a design reference.  Our middleware communicates with the gateway using [libzwaveip](https://github.com/matrix-io/libzwaveip) and it is based on the public examples in that repository. The libzwaveip is a library making it easier to control Z-Wave devices from an IP network via a Z/IP Gateway. Also we use SERIAL API (SDK 6.71). We run the Z/IP Gateway on the Raspberry Pi and communicate with the gateway using the libzwaveip.
+The Z/IP Gateway is a Z-Wave controller that does the translation between IP and Z-Wave RF. More about Z/IP Gateway can be found <a href="https://z-wave.sigmadesigns.com/wp-content/uploads/Z-IP_Gateway_br.pdf">here</a>.
+Our Software Architecture follows these specs:
 
-[SOFTWARE ARCHICTETURE IMAGE]
-
-#### Z/IP Gateway
-
-According to Sigma Design, a Z/IP Gateway is  <a    href="https://z-wave.sigmadesigns.com/wp-content/uploads/Z-IP_Gateway_br.pdf">"an application that handles all communication between
-Z-Wave and Z-Wave for IP in a similar way that a home router handles the
-communication between the home PC and the Internet.
-The Z/IP Gateway allows polling from multiple connected Z/IP clients such as
-tablets, PCs and smart phones. It can also connect to a remote server through
-a secure TLS1.1 tunnel making it ideal for use with a portal server.
-The Z/IP Gateway handles all the Z-Wave housekeeping such as network
-managment, Z-Wave Security, mailbox for battery driven devices, Z/IP
-packaging and multichannel support. "</a>
+<img src="https://github.com/matrix-io/matrix-malos-zwave/blob/master/software_architecture.png" align="right" width="500">
 
 ### Using the Driver
 
@@ -176,11 +157,13 @@ We have 5 (five) operations in `ZWaveOperations` property that you can work on. 
 + SETDEFAULT
 + LIST
 
-Remember the steps mentioned in earlier and now they will be like this:
-1. Start the driver - `malos-zwave`
-2. Find Z-Wave clients in the network - you can find it using the `LIST` operation
-3. Just include a node (device) with `ADDNODE` operation
-4. SEND commands to your device with `SEND` operation
+The Z/IP Gateways 
+Remember the steps mentioned earlier and now they will be like this:
+1. First you need to run the Z/IP Gateway whom is already installed with `matrixio-zipgateway`
+2. Run the `malos_zwave`
+3. Find Z-Wave clients in the network - you can find it using the `LIST` operation
+4. Just include a node (device) with `ADDNODE` operation
+5. SEND commands to your device with `SEND` operation
 
 You can also remove a node with the `REMOVENODE` operation. All operations are inside the `ZWaveMsg` object. First you need to create a new instance of `matrixMalosBuilder.ZWaveMsg`. And the set the operation you want to use with the `set_operation()` function and then send it via socket. It should be more or less like this:
 
