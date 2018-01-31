@@ -8,6 +8,8 @@
   "devDependencies": {
     "protobufjs": "^5.0.1",
     "zmq": "*",
-    "mic": "*"
+    "mic": "*",
+    "async": "^2.6.0",
+    "lodash": "^3.10.0"
   }
 }
