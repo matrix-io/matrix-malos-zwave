@@ -14,25 +14,34 @@ var creator_servo_base_port = 50001 // port for ZWave MALOS
 
 var protoBuf = require("protobufjs");
 var protoBuilder = protoBuf.loadProtoFile('../../protocol-buffers/malos/driver.proto')
-var matrixMalosBuilder = protoBuilder.build("matrix_malos")
+
+// Import MATRIX Proto messages
+var matrix_io = require('matrix-protos').matrix_io
 var async = require("async");
 
 var zmq = require('zmq')
 var configSocket = zmq.socket('push')
 configSocket.connect('tcp://' + creator_ip + ':' + creator_servo_base_port /* config */)
 
-function send(operation) {
+function setOperation(operation) {
     var zwave_cmd = new matrixMalosBuilder.ZWaveMsg;
     zwave_cmd.set_operation(operation);
     
     var config = new matrixMalosBuilder.DriverConfig;
     config.set_zwave(zwave_cmd);
-    return configSocket.send(config.encode().toBuffer());
+    
+    configSocket.send(matrix_io.malos.v1.driver.DriverConfig.encode(zb_toggle_msg).finish());
 }
 
+function sendCommand(command) {
+    
+}
+
+console.log(matrix_io.malos.v1.comm.ZWaveMsg);
 async.waterfall([
     function(cb) {
-        send(matrixMalosBuilder.ZWaveMsg.ZWaveOperations.ADDNODE);
+        setOperation(matrix_io.malos.v1.comm.ZWaveMsg.ZWaveOperations.ADDNODE);
+        configSocket()
         cb(null);
     }, function(cb) {
         console.log("NODE ADDED!");
