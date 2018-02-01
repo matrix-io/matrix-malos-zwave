@@ -1,6 +1,6 @@
 #!/bin/bash
 
-DEVICES=$(avahi-browse _z-wave._udp -r -t -p | grep Controller|grep mode| cut -d ";" -f8)
+DEVICES=$(avahi-browse _z-wave._udp -r -t -p | grep Controller| cut -d ";" -f8)
 
 for device in $DEVICES
 do
