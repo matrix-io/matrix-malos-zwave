@@ -154,7 +154,7 @@ bool ZWaveDriver::ProcessConfig(const pb::driver::DriverConfig& config) {
   pb::comm::ZWaveMsg zwave(config.zwave());
 
   static_zqm_push_update_ = zqm_push_update_.get();
-
+  std::cout << zwave.operation() << std::endl;
   switch (zwave.operation()) {
     case pb::comm::ZWaveMsg::SEND:
       Send(zwave);
@@ -174,9 +174,9 @@ bool ZWaveDriver::ProcessConfig(const pb::driver::DriverConfig& config) {
     case pb::comm::ZWaveMsg::UNDEF:
     default:
       // If this happens the program has to be fixed.
-      std::cerr << "Invalid enum conversion. EnumMalosEyeDetectionType."
+      std::cerr << "Invalid Zwave Operation"
                 << std::endl;
-      std::exit(1);
+      return false;
   }
 
   return true;
@@ -190,7 +190,7 @@ bool ZWaveDriver::SendUpdate() {
 void ZWaveDriver::Send(const pb::comm::ZWaveMsg& msg) {
   std::string cmd_name = ZWaveCmdType_Name(msg.zwave_cmd().cmd());
   std::string class_name = ZWaveClassType_Name(msg.zwave_cmd().zwclass());
-
+  std::cout << "name" << cmd_name << "class" << class_name << std::endl;
   const zw_command_class* p_class =
       zw_cmd_tool_get_class_by_name(class_name.c_str());
   const zw_command* p_cmd =
@@ -207,6 +207,8 @@ void ZWaveDriver::Send(const pb::comm::ZWaveMsg& msg) {
   memset(binary_command, 0, binary_command_buffer_size);
   binary_command[0] = p_class->cmd_class_number;
   binary_command[1] = p_cmd->cmd_number;
+  std::cout << "Length: " << msg.zwave_cmd().params().length() << std::endl;
+  std::cout << "Param: " << int(msg.zwave_cmd().params()[0]) << std::endl;
 
   memcpy(&binary_command[2], msg.zwave_cmd().params().c_str(),
          msg.zwave_cmd().params().length());
@@ -238,6 +240,8 @@ void ZWaveDriver::Send(const pb::comm::ZWaveMsg& msg) {
     return;
   }
   dest_address_ = msg.service_to_send();
+  std::cout << "address" << dest_address_ << std::endl;
+  std::cout << "param" << std::hex << int(binary_command[0]) << int(binary_command[1]) << int(binary_command[2]) << std::endl;
   std::this_thread::sleep_for(std::chrono::seconds(1));
   zconnection_set_transmit_done_func(pan_connection_, TransmitDonePan);
   if (zconnection_send_async(pan_connection_, binary_command, binary_commandLen,

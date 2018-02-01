@@ -10,10 +10,7 @@
 // BasePort + 3 => Data port. Receive data from device.
 
 var creator_ip = '127.0.0.1'
-var creator_servo_base_port = 50001 // port for ZWave MALOS
-
-var protoBuf = require("protobufjs");
-var protoBuilder = protoBuf.loadProtoFile('../../protocol-buffers/malos/driver.proto')
+var creator_zwave_base_port = 50001 // port for ZWave MALOS
 
 // Import MATRIX Proto messages
 var matrix_io = require('matrix-protos').matrix_io
@@ -21,7 +18,15 @@ var async = require("async");
 
 var zmq = require('zmq')
 var configSocket = zmq.socket('push')
-configSocket.connect('tcp://' + creator_ip + ':' + creator_servo_base_port /* config */)
+configSocket.connect('tcp://' + creator_ip + ':' + creator_zwave_base_port /* config */)
+
+//------------ Starting to ping the driver -----------------------
+
+var pingSocket = zmq.socket('push');
+pingSocket.connect('tcp://' + creator_ip + ':' + (creator_zwave_base_port + 1));
+pingSocket.send('');  // Ping the first time.
+
+setInterval(function() { pingSocket.send(''); }, 1000);
 
 function setOperation(operation) {
     var zwave_cmd = new matrixMalosBuilder.ZWaveMsg;
