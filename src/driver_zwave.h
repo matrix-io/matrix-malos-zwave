@@ -31,11 +31,13 @@ extern "C" {
 
 #include <matrix_io/malos/v1/driver.pb.h>
 #include <matrix_malos/malos_base.h>
+#include <matrix_io/malos/v1/driver.pb.h>
 
 #include <memory>
 #include <string>
 #include <thread>
 #include <valarray>
+
 
 const char kZWaveDriverName[] = "ZWave";
 
