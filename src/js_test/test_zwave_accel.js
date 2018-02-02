@@ -30,7 +30,7 @@ configZWaveSocket.connect('tcp://' + creator_ip + ':' + creator_zwave_base_port 
 
 // -------------- IMU Configuration --------------------------
 var config = matrix_io.malos.v1.driver.DriverConfig.create({
-  delayBetweenUpdates: 2.0,  // 2 seconds between updates
+  delayBetweenUpdates: 1.0,  // 2 seconds between updates
   timeoutAfterLastPing: 6.0  // Stop sending updates 6 seconds after pings.
 })
 
@@ -51,7 +51,7 @@ pingImu.send(''); // Ping the first time.
 setInterval(() => {
   pingImu.send('');
   pingZWave.send('');
-}, 5000);
+}, 500);
 
 //-----  Print the errors that the Zwave driver sends ------------
 
@@ -72,44 +72,26 @@ errorImu.on('message', (error_message) => {
   console.log('Message received: IMU error: ', error_message.toString('utf8'))
 });
 
-function listNodes(){
-    var init_config = matrix_io.malos.v1.driver.DriverConfig.create({
-        zwave: matrix_io.malos.v1.comm.ZWaveMsg.create({
-            operation: matrix_io.malos.v1.comm.ZWaveMsg.ZWaveOperations.LIST
-            })
-        });	
+var data = new Uint8Array(1);
 
-    return configZWaveSocket.send(
-        matrix_io.malos.v1.driver.DriverConfig.encode(init_config).finish());
+function set_state(value){
+  data[0] = value
+  var init_config = matrix_io.malos.v1.driver.DriverConfig.create({
+                zwave: matrix_io.malos.v1.comm.ZWaveMsg.create({
+                    operation: matrix_io.malos.v1.comm.ZWaveMsg.ZWaveOperations.SEND,
+                    serviceToSend: "Switch Binary [f7abf7fc0600]",
+                    zwaveCmd: matrix_io.malos.v1.comm.ZWaveMsg.ZWaveCommand.create({
+                        zwclass: matrix_io.malos.v1.comm.ZWaveClassType.COMMAND_CLASS_SWITCH_BINARY,
+			cmd: matrix_io.malos.v1.comm.ZWaveCmdType.SWITCH_BINARY_SET,
+                        params: data
+                    })
+                })                 
+            });
+
+
+            return configZWaveSocket.send(matrix_io.malos.v1.driver.DriverConfig.encode(init_config).finish());            
+
 }
-
-function addNodes(){
-    var init_config = matrix_io.malos.v1.driver.DriverConfig.create({
-        zwave: matrix_io.malos.v1.comm.ZWaveMsg.create({
-            operation: matrix_io.malos.v1.comm.ZWaveMsg.ZWaveOperations.ADDNODE
-            })  
-        });	
-
-    return configZWaveSocket.send(
-        matrix_io.malos.v1.driver.DriverConfig.encode(init_config).finish());
-}
-
-function removeNode(){
-    var init_config = matrix_io.malos.v1.driver.DriverConfig.create({
-        zwave: matrix_io.malos.v1.comm.ZWaveMsg.create({
-            operation: matrix_io.malos.v1.comm.ZWaveMsg.ZWaveOperations.REMOVENODE
-            })
-        });	
-
-    return configZWaveSocket.send(
-        matrix_io.malos.v1.driver.DriverConfig.encode(init_config).finish());
-}
-
-let off = new Uint8Array(1);
-let on = new Uint8Array(1);
-
-off[0] = 0x00;
-on[0] = 0xFF;
 
 function toggle(){
     var receiveData = zmq.socket('sub')
@@ -119,31 +101,9 @@ function toggle(){
     receiveData.on('message', (imu_buffer) => {
         var imuData = matrix_io.malos.v1.sense.Imu.decode(imu_buffer);
         if (imuData.accelZ < 0) {
-            var init_config = matrix_io.malos.v1.driver.DriverConfig.create({
-                zwave: matrix_io.malos.v1.comm.ZWaveMsg.create({
-                    operation: matrix_io.malos.v1.comm.ZWaveMsg.ZWaveOperations.SEND,
-                    serviceToSend: "Switch Multilevel [f02e99ae2000]",
-                    zwaveCmd: matrix_io.malos.v1.comm.ZWaveMsg.ZWaveCommand.create({
-                        zwclass: matrix_io.malos.v1.comm.ZWaveClassType.COMMAND_CLASS_SWITCH_MULTILEVEL,
-                        cmd: matrix_io.malos.v1.comm.ZWaveCmdType.SWITCH_MULTILEVEL_SET,
-                        params: off
-                    })
-                })                 
-            });
-            return configZWaveSocket.send(matrix_io.malos.v1.driver.DriverConfig.encode(init_config).finish());            
+            set_state(0x00)
         } else {
-            var init_config = matrix_io.malos.v1.driver.DriverConfig.create({
-                zwave: matrix_io.malos.v1.comm.ZWaveMsg.create({
-                    operation: matrix_io.malos.v1.comm.ZWaveMsg.ZWaveOperations.SEND,
-                    serviceToSend: "Switch Multilevel [f02e99ae2000]",
-                    zwaveCmd: matrix_io.malos.v1.comm.ZWaveMsg.ZWaveCommand.create({
-                        zwclass: matrix_io.malos.v1.comm.ZWaveClassType.COMMAND_CLASS_SWITCH_MULTILEVEL,
-                        cmd: matrix_io.malos.v1.comm.ZWaveCmdType.SWITCH_MULTILEVEL_SET,
-                        params: on
-                    })
-                })                 
-            });
-            return configZWaveSocket.send(matrix_io.malos.v1.driver.DriverConfig.encode(init_config).finish());        
+            set_state(0xFF)
         }
     });
 }

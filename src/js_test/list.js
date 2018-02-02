@@ -10,24 +10,93 @@
 // BasePort + 3 => Data port. Receive data from device.
 
 var creator_ip = '127.0.0.1'
-var creator_servo_base_port = 50001 // port for ZWave MALOS
+var creator_zwave_base_port = 50001 // port for ZWave MALOS
 
-var protoBuf = require("protobufjs");
-var protoBuilder = protoBuf.loadProtoFile('../../protocol-buffers/malos/driver.proto')
-var matrixMalosBuilder = protoBuilder.build("matrix_malos")
+var matrix_io = require('matrix-protos').matrix_io
 
 var zmq = require('zmq')
 var configSocket = zmq.socket('push')
-configSocket.connect('tcp://' + creator_ip + ':' + creator_servo_base_port /* config */)
+configSocket.connect('tcp://' + creator_ip + ':' + creator_zwave_base_port /* config */)
 
-function listNodes() {
-  var zwave_cmd = new matrixMalosBuilder.ZWaveMsg;
-  zwave_cmd.set_operation(matrixMalosBuilder.ZWaveMsg.ZWaveOperations.LIST);
+// ------------ Starting to ping the driver -----------------------
 
-  var config = new matrixMalosBuilder.DriverConfig;
-  config.set_zwave(zwave_cmd);
-  return configSocket.send(config.encode().toBuffer());
+var pingSocket = zmq.socket('push');
+pingSocket.connect('tcp://' + creator_ip + ':' + (creator_zwave_base_port + 1));
+pingSocket.send('');  // Ping the first time.
+
+setInterval(function() { pingSocket.send(''); }, 1000);
+
+//-----  Print the errors that the ZigBee driver sends ------------
+
+var errorSocket = zmq.socket('sub'); 
+errorSocket.connect('tcp://' + creator_ip + ':' +
+	                    (creator_zwave_base_port + 2));
+errorSocket.subscribe('');
+errorSocket.on('message', function(error_message) {
+	  process.stdout.write('Message received: ' + error_message.toString('utf8') +
+		                         "\n");
+});
+
+// ------------ Starting to ping the driver -----------------------
+
+var pingSocket = zmq.socket('push');
+pingSocket.connect('tcp://' + creator_ip + ':' + (creator_zwave_base_port + 1));
+pingSocket.send('');  // Ping the first time.
+
+setInterval(function() { pingSocket.send(''); }, 1000);
+
+function listNodes(){
+var init_config = matrix_io.malos.v1.driver.DriverConfig.create({
+	zwave: matrix_io.malos.v1.comm.ZWaveMsg.create({
+		operation: matrix_io.malos.v1.comm.ZWaveMsg.ZWaveOperations.LIST
+})
+});	
+
+return configSocket.send(
+	  matrix_io.malos.v1.driver.DriverConfig.encode(init_config).finish());
 }
 
-console.log(require('util').inspect(listNodes(), { showHidden: true, depth: null }));
-//listNodes();
+function addNodes(){
+var init_config = matrix_io.malos.v1.driver.DriverConfig.create({
+	zwave: matrix_io.malos.v1.comm.ZWaveMsg.create({
+		operation: matrix_io.malos.v1.comm.ZWaveMsg.ZWaveOperations.ADDNODE
+})
+});	
+
+return configSocket.send(
+	  matrix_io.malos.v1.driver.DriverConfig.encode(init_config).finish());
+}
+
+function removeNode(){
+var init_config = matrix_io.malos.v1.driver.DriverConfig.create({
+	zwave: matrix_io.malos.v1.comm.ZWaveMsg.create({
+		operation: matrix_io.malos.v1.comm.ZWaveMsg.ZWaveOperations.REMOVENODE
+})
+});	
+
+return configSocket.send(
+	  matrix_io.malos.v1.driver.DriverConfig.encode(init_config).finish());
+}
+
+var param = new Uint8Array(1);
+param[0]=0xFF;
+
+function test(){
+var init_config = matrix_io.malos.v1.driver.DriverConfig.create({
+	zwave: matrix_io.malos.v1.comm.ZWaveMsg.create({
+		operation: matrix_io.malos.v1.comm.ZWaveMsg.ZWaveOperations.SEND,
+//		serviceToSend: "10.0.0.137",
+		serviceToSend: "Switch Binary [f7abf7fc0600]",
+		zwaveCmd: matrix_io.malos.v1.comm.ZWaveMsg.ZWaveCommand.create({
+			zwclass: matrix_io.malos.v1.comm.ZWaveClassType.COMMAND_CLASS_SWITCH_BINARY,
+			cmd: matrix_io.malos.v1.comm.ZWaveCmdType.SWITCH_BINARY_SET,
+			params: param
+		})
+	})
+});
+
+return configSocket.send(
+	  matrix_io.malos.v1.driver.DriverConfig.encode(init_config).finish());
+}
+listNodes()
+test()
