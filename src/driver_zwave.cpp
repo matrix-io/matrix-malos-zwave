@@ -23,11 +23,11 @@
 #include <gflags/gflags.h>
 #include <matrix_io/malos/v1/driver.pb.h>
 
-#include <valarray>
 #include <chrono>
 #include <iostream>
 #include <string>
 #include <thread>
+#include <valarray>
 
 DEFINE_int32(port, 41230, "ZWaveIP gateway port");
 DEFINE_string(server, "::1", "ZWaveIP Gateway ");
@@ -174,8 +174,7 @@ bool ZWaveDriver::ProcessConfig(const pb::driver::DriverConfig& config) {
     case pb::comm::ZWaveMsg::UNDEF:
     default:
       // If this happens the program has to be fixed.
-      std::cerr << "Invalid Zwave Operation"
-                << std::endl;
+      std::cerr << "Invalid Zwave Operation" << std::endl;
       return false;
   }
 
@@ -189,10 +188,12 @@ bool ZWaveDriver::SendUpdate() {
 
 void ZWaveDriver::Send(const pb::comm::ZWaveMsg& msg) {
   std::string cmd_name = ZWaveCmdType_Name(msg.zwave_cmd().cmd());
+
   std::string class_name = ZWaveClassType_Name(msg.zwave_cmd().zwclass());
-  std::cout << "name" << cmd_name << "class" << class_name << std::endl;
+
   const zw_command_class* p_class =
       zw_cmd_tool_get_class_by_name(class_name.c_str());
+
   const zw_command* p_cmd =
       zw_cmd_tool_get_cmd_by_name(p_class, cmd_name.c_str());
 
@@ -207,24 +208,25 @@ void ZWaveDriver::Send(const pb::comm::ZWaveMsg& msg) {
   memset(binary_command, 0, binary_command_buffer_size);
   binary_command[0] = p_class->cmd_class_number;
   binary_command[1] = p_cmd->cmd_number;
-  std::cout << "Length: " << msg.zwave_cmd().params().length() << std::endl;
-  std::cout << "Param: " << int(msg.zwave_cmd().params()[0]) << std::endl;
 
   memcpy(&binary_command[2], msg.zwave_cmd().params().c_str(),
          msg.zwave_cmd().params().length());
 
-  int binary_commandLen =
-      2 +
-      msg.zwave_cmd()
-          .params()
-          .length();  // sizeof([class_number,cmd_number,params])
+  int binary_commandLen = 2 + msg.zwave_cmd().params().length();
 
   if (pan_bonnection_busy_) {
     std::cerr << "Busy, cannot send right now." << std::endl;
     return;
   }
 
-  if (msg.service_to_send() != dest_address_) {
+  std::string service_address;
+  if (!ServiceToAddress(msg.service_to_send(), &service_address)) {
+    std::cerr << "Invalid service : " << msg.service_to_send() << std::endl;
+    return;
+  }
+  std::cout << "addr: " << service_address << " " << dest_address_ << std::endl;
+
+  if (service_address != dest_address_) {
     if (pan_connection_) {
       zclient_stop(pan_connection_);
       pan_connection_ = NULL;
@@ -232,17 +234,17 @@ void ZWaveDriver::Send(const pb::comm::ZWaveMsg& msg) {
     // FIXME: Use thread synchronization instead of sleep to avoid "Socket
     //        Read Error"
     std::this_thread::sleep_for(std::chrono::seconds(1));
-    pan_connection_ = ZipConnect(msg.service_to_send().c_str());
+    pan_connection_ = ZipConnect(service_address);
   }
   if (!pan_connection_) {
     std::cerr << "Failed to connect to PAN node" << std::endl;
     dest_address_[0] = 0;
     return;
   }
-  dest_address_ = msg.service_to_send();
-  std::cout << "address" << dest_address_ << std::endl;
-  std::cout << "param" << std::hex << int(binary_command[0]) << int(binary_command[1]) << int(binary_command[2]) << std::endl;
+  dest_address_ = service_address;
+
   std::this_thread::sleep_for(std::chrono::seconds(1));
+
   zconnection_set_transmit_done_func(pan_connection_, TransmitDonePan);
   if (zconnection_send_async(pan_connection_, binary_command, binary_commandLen,
                              0)) {
@@ -257,8 +259,12 @@ void ZWaveDriver::AddNode() {
   const uint8_t NODE_ADD = 0x01;
 
   static uint8_t buf[] = {
-      COMMAND_CLASS_NETWORK_MANAGEMENT_INCLUSION, NODE_ADD, get_unique_seq_no(),
-      0, 0x07 /* ADD_NODE_S2 */, 0 /* Normal power, no NWI */
+      COMMAND_CLASS_NETWORK_MANAGEMENT_INCLUSION,
+      NODE_ADD,
+      get_unique_seq_no(),
+      0,
+      0x07 /* ADD_NODE_S2 */,
+      0 /* Normal power, no NWI */
   };
 
   zconnection_send_async(gw_zip_connection_, buf, sizeof(buf), 0);
@@ -358,42 +364,52 @@ void ZWaveDriver::List() {
   zqm_push_update_->Send(buffer);
 }
 
-zconnection* ZWaveDriver::ZipConnect(const char* remote_addr) {
+zconnection* ZWaveDriver::ZipConnect(const std::string& address) {
   if (cfg_psk_len_ == 0) {
-    std::cerr << "PSK not configured - unable to connect to " << remote_addr
+    std::cerr << "PSK not configured - unable to connect to " << address
               << std::endl;
     return 0;
   }
-  char address[256];
-  memset(address, 0, 256);
-  memcpy(address, remote_addr, strlen(remote_addr));
 
-  for (zip_service* n = zresource_get(); n; n = n->next) {
-    const char* res;
-    /* Try connecting via IPv6 first */
-    res = inet_ntop(n->addr6.sin6_family, &n->addr6.sin6_addr, address,
-                    sizeof(struct sockaddr_in6));
-    if (!res) {
-      /* fallback to IPv4 */
-      res = inet_ntop(n->addr.sin_family, &n->addr.sin_addr, address,
-                      sizeof(struct sockaddr_in));
-      if (!res) {
-        std::cerr << "Invalid destination address." << std::endl;
-        return 0;
-      }
-    }
-  }
-  zconnection* zc;
-
-  zc = zclient_start(address, 41230, reinterpret_cast<char*>(&cfg_psk_[0]),
-                     cfg_psk_len_, ApplicationCommandHandler);
+  zconnection* zc = zclient_start(address.c_str(), 41230,
+                                  reinterpret_cast<char*>(&cfg_psk_[0]),
+                                  cfg_psk_len_, ApplicationCommandHandler);
   if (zc == 0) {
-    std::cout << "Error connecting to " << remote_addr << std::endl;
+    std::cout << "Error connecting to " << address << std::endl;
   } else {
-    std::cout << "ZWaveDriver connected to " << remote_addr << "-" << address
-              << std::endl;
+    std::cout << "ZWaveDriver connected to " << address << std::endl;
   }
   return zc;
+}
+
+bool ZWaveDriver::ServiceToAddress(const std::string& service_name,
+                                   std::string* addr) {
+  if (cfg_psk_len_ == 0) {
+    std::cerr << "PSK not configured - unable to connect to " << service_name
+              << std::endl;
+    return false;
+  }
+
+  char addr_str[INET6_ADDRSTRLEN];
+
+  for (struct zip_service* n = zresource_get(); n; n = n->next) {
+    if (std::string(n->service_name) != service_name) continue;
+
+    /* Try connecting via IPv6 first */
+    if (inet_ntop(n->addr6.sin6_family, &n->addr6.sin6_addr, addr_str,
+                  sizeof(struct sockaddr_in6))) {
+      *addr = std::string(addr_str);
+      return true;
+    }
+
+    /* fallback to IPv4 */
+    if (inet_ntop(n->addr.sin_family, &n->addr.sin_addr, addr_str,
+                  sizeof(struct sockaddr_in))) {
+      *addr = std::string(addr_str);
+      return true;
+    }
+  }
+  return false;
 }
 
 void print_hex_string(const uint8_t* data, unsigned int datalen) {

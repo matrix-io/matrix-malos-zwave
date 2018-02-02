@@ -29,13 +29,13 @@ extern "C" {
 #include <zwaveip/zw_cmd_tool.h>
 }
 
-#include <matrix_malos/malos_base.h>
 #include <matrix_io/malos/v1/driver.pb.h>
+#include <matrix_malos/malos_base.h>
 
 #include <memory>
-#include <valarray>
-#include <thread>
 #include <string>
+#include <thread>
+#include <valarray>
 
 const char kZWaveDriverName[] = "ZWave";
 
@@ -62,7 +62,8 @@ class ZWaveDriver : public MalosBase {
   void List();
 
  private:
-  zconnection* ZipConnect(const char* remote_addr);
+  zconnection* ZipConnect(const std::string& address);
+  bool ServiceToAddress(const std::string& service_name, std::string* addr);
   static void TransmitDonePan(zconnection* zc,
                               transmission_status_code_t status);
 
