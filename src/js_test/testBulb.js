@@ -120,30 +120,46 @@ function toggle(){
         var imuData = matrix_io.malos.v1.sense.Imu.decode(imu_buffer);
         if (imuData.accelX < 0 && imuData.accelY < 0 && imuData.accelZ < 0) {
             var init_config = matrix_io.malos.v1.driver.DriverConfig.create({
-                operation: matrix_io.malos.v1.comm.ZWaveMsg.ZWaveOperations.SEND,
-                serviceToSend: "Switch Multilevel [f02e99ae2000]",
-                zwaveCmd: matrix_io.malos.v1.comm.ZWaveMsg.ZWaveCommand.create({
-                    zwclass: matrix_io.malos.v1.comm.ZWaveClassType.COMMAND_CLASS_SWITCH_MULTILEVEL,
-                    cmd: matrix_io.malos.v1.comm.ZWaveCmdType.SWITCH_MULTILEVEL_SET,
-                    params: off
-                })                
+                zwave: matrix_io.malos.v1.comm.ZWaveMsg.create({
+                    operation: matrix_io.malos.v1.comm.ZWaveMsg.ZWaveOperations.SEND,
+                    serviceToSend: "Switch Multilevel [f02e99ae2000]",
+                    zwaveCmd: matrix_io.malos.v1.comm.ZWaveMsg.ZWaveCommand.create({
+                        zwclass: matrix_io.malos.v1.comm.ZWaveClassType.COMMAND_CLASS_SWITCH_MULTILEVEL,
+                        cmd: matrix_io.malos.v1.comm.ZWaveCmdType.SWITCH_MULTILEVEL_SET,
+                        params: off
+                    })
+                })                 
             });
             return configZWaveSocket.send(matrix_io.malos.v1.driver.DriverConfig.encode(init_config).finish());            
         } else {
             var init_config = matrix_io.malos.v1.driver.DriverConfig.create({
-                operation: matrix_io.malos.v1.comm.ZWaveMsg.ZWaveOperations.SEND,
-                serviceToSend: "Switch Multilevel [f02e99ae2000]",
-                zwaveCmd: matrix_io.malos.v1.comm.ZWaveMsg.ZWaveCommand.create({
-                    zwclass: matrix_io.malos.v1.comm.ZWaveClassType.COMMAND_CLASS_SWITCH_MULTILEVEL,
-                    cmd: matrix_io.malos.v1.comm.ZWaveCmdType.SWITCH_MULTILEVEL_SET,
-                    params: on
-                }) 
+                zwave: matrix_io.malos.v1.comm.ZWaveMsg.create({
+                    operation: matrix_io.malos.v1.comm.ZWaveMsg.ZWaveOperations.SEND,
+                    serviceToSend: "Switch Multilevel [f02e99ae2000]",
+                    zwaveCmd: matrix_io.malos.v1.comm.ZWaveMsg.ZWaveCommand.create({
+                        zwclass: matrix_io.malos.v1.comm.ZWaveClassType.COMMAND_CLASS_SWITCH_MULTILEVEL,
+                        cmd: matrix_io.malos.v1.comm.ZWaveCmdType.SWITCH_MULTILEVEL_SET,
+                        params: on
+                    })
+                })                 
             });
             return configZWaveSocket.send(matrix_io.malos.v1.driver.DriverConfig.encode(init_config).finish());        
         }
     });
 }
+var init_config = matrix_io.malos.v1.driver.DriverConfig.create({
+	zwave: matrix_io.malos.v1.comm.ZWaveMsg.create({
+		operation: matrix_io.malos.v1.comm.ZWaveMsg.ZWaveOperations.SEND,
+//		serviceToSend: "10.0.0.137",
+		serviceToSend: "Switch Binary [f7abf7fc0600]",
+		zwaveCmd: matrix_io.malos.v1.comm.ZWaveMsg.ZWaveCommand.create({
+			zwclass: matrix_io.malos.v1.comm.ZWaveClassType.COMMAND_CLASS_SWITCH_BINARY,
+			cmd: matrix_io.malos.v1.comm.ZWaveCmdType.SWITCH_BINARY_SET,
+			params: param
+		})
+	})
+});
 
-listNodes()
+//listNodes()
 addNodes()
 toggle()
