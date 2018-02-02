@@ -118,7 +118,7 @@ function toggle(){
     receiveData.subscribe('')
     receiveData.on('message', (imu_buffer) => {
         var imuData = matrix_io.malos.v1.sense.Imu.decode(imu_buffer);
-        if (imuData.accelX < 0 && imuData.accelY < 0 && imuData.accelZ < 0) {
+        if (imuData.accelZ < 0) {
             var init_config = matrix_io.malos.v1.driver.DriverConfig.create({
                 zwave: matrix_io.malos.v1.comm.ZWaveMsg.create({
                     operation: matrix_io.malos.v1.comm.ZWaveMsg.ZWaveOperations.SEND,
@@ -148,5 +148,4 @@ function toggle(){
     });
 }
 
-listNodes()
 toggle()
