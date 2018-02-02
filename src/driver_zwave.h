@@ -83,7 +83,7 @@ class ZWaveDriver : public MalosBase {
   zconnection* gw_zip_connection_;
   zconnection* pan_connection_;
   std::string dest_address_;
-  std::string server_ip_;
+  std::string server_controller_;
 
   std::valarray<uint8_t> cfg_psk_;  // fixed size = 64
   uint8_t cfg_psk_len_;

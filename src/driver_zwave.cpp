@@ -129,7 +129,7 @@ ZWaveDriver::ZWaveDriver()
   SetNotesForHuman("ZWave Driver v1.0");
   pan_bonnection_busy_ = false;
 
-  server_ip_ = FLAGS_server;
+  server_controller_ = FLAGS_server;
 
   ParsePsk(FLAGS_psk.c_str());
   std::cout << "FLAGS_psk : " << FLAGS_psk << std::endl;
@@ -139,7 +139,13 @@ ZWaveDriver::ZWaveDriver()
     return;
   }
 
-  gw_zip_connection_ = ZipConnect(server_ip_.c_str());
+  std::string controller_address;
+  if (!ServiceToAddress(server_controller_, &controller_address)) {
+    std::cerr << "Invalid controller : " << server_controller_  << std::endl;
+    return;
+  }
+  
+  gw_zip_connection_ = ZipConnect(controller_address.c_str());
 
   zconnection_set_transmit_done_func(gw_zip_connection_, transmit_done);
 
