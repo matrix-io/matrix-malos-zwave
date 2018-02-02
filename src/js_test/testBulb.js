@@ -11,6 +11,8 @@
 
 var creator_ip = '127.0.0.1'
 var creator_servo_base_port = 50001 // port for ZWave MALOS
+var zwaveDeviceIP = ""; // Device ip 
+var turnOn = "COMMAND_CLASS_SWITCH_MULTILEVEL";
 
 var protoBuf = require("protobufjs");
 var protoBuilder = protoBuf.loadProtoFile('../../protocol-buffers/malos/driver.proto')
@@ -23,18 +25,28 @@ var zmq = require('zmq')
 var configSocket = zmq.socket('push')
 configSocket.connect('tcp://' + creator_ip + ':' + creator_servo_base_port /* config */)
 
+var init_config = matrix_io.malos.v1.driver.DriverConfig.create({
+    delayBetweenUpdates: 1.0,  // 1 seconds between updates.
+    timeoutAfterLastPing: 1.0 // Stop sending updates 6 seconds after pings.
+  });
+
+
 function setOperation(operation) {
-    var zwave_cmd = new matrixMalosBuilder.ZWaveMsg;
-    zwave_cmd.set_operation(operation);
-    
-    var config = new matrixMalosBuilder.DriverConfig;
-    config.set_zwave(zwave_cmd);
-    
-    configSocket.send(matrix_io.malos.v1.driver.DriverConfig.encode(zb_toggle_msg).finish());
+    var zwave_cmd = new matrix_io.malos.v1.comm.ZWaveMsg.create({ operation: operation });  
+    configSocket.send(matrix_io.malos.v1.driver.DriverConfig.encode(zwave_cmd).finish());
 }
 
-function sendCommand(command) {
-    
+function sendCommand(command, params) {
+    var zwave_cmd = new matrix_io.malos.v1.comm.ZWaveMsg.create({
+        operation: matrix_io.malos.v1.comm.ZWaveMsg.ZWaveOperations.SEND,
+        zwaveCmd: matrix_io.malos.v1.comm.ZWaveMsg.ZWaveCommand.create({
+            //zwclass: ,
+            cmd: command,
+            params: params
+        })
+    });
+
+    configSocket.send(matrix_io.malos.v1.driver.DriverConfig.encode(zwave_cmd).finish());
 }
 
 console.log(matrix_io.malos.v1.comm.ZWaveMsg);
@@ -45,9 +57,12 @@ async.waterfall([
         cb(null);
     }, function(cb) {
         console.log("NODE ADDED!");
-        console.log(util.inspect(matrixMalosBuilder));
+        sendCommand(command, "FF");        
         //send()
         cb(null);
+    }, function(cb) {
+        console.log("TURNING OFF");
+        sendCommand(command, "00");
     }
 ], function(err) {
     if (err) console.log(err);
