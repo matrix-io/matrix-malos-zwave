@@ -147,19 +147,6 @@ function toggle(){
         }
     });
 }
-var init_config = matrix_io.malos.v1.driver.DriverConfig.create({
-	zwave: matrix_io.malos.v1.comm.ZWaveMsg.create({
-		operation: matrix_io.malos.v1.comm.ZWaveMsg.ZWaveOperations.SEND,
-//		serviceToSend: "10.0.0.137",
-		serviceToSend: "Switch Binary [f7abf7fc0600]",
-		zwaveCmd: matrix_io.malos.v1.comm.ZWaveMsg.ZWaveCommand.create({
-			zwclass: matrix_io.malos.v1.comm.ZWaveClassType.COMMAND_CLASS_SWITCH_BINARY,
-			cmd: matrix_io.malos.v1.comm.ZWaveCmdType.SWITCH_BINARY_SET,
-			params: param
-		})
-	})
-});
 
-//listNodes()
-addNodes()
+listNodes()
 toggle()
