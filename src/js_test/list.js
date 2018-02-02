@@ -79,7 +79,7 @@ return configSocket.send(
 }
 
 var param = new Uint8Array(1);
-param[0]=0x00;
+param[0]=0xFF;
 
 function test(){
 var init_config = matrix_io.malos.v1.driver.DriverConfig.create({
