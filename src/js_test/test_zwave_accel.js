@@ -13,6 +13,7 @@
 // ------------ Z-Wave ----------------------------------------
 const creator_ip = '127.0.0.1'
 const creator_zwave_base_port = 50001 // port for ZWave MALOS
+let serviceToSend = ''; // Only searching for Switch Multilevel devices
 
 // ------------- IMU ------------------------------------------
 const creator_imu_base_port = 20013
@@ -21,12 +22,15 @@ const creator_imu_base_port = 20013
 // -------------- Stuffs needed -------------------------------
 var matrix_io = require('matrix-protos').matrix_io
 var zmq = require('zmq')
+var _ = require('lodash');
 var configImuSocket = zmq.socket('push')
 var configZWaveSocket = zmq.socket('push')
+var receiveListInfo = zmq.socket('sub');
 
 // ----------------- Socket connection -----------------------
 configImuSocket.connect('tcp://' + creator_ip + ':' + creator_imu_base_port)
 configZWaveSocket.connect('tcp://' + creator_ip + ':' + creator_zwave_base_port /* config */)
+receiveListInfo.connect('tcp://' + creator_ip + ':' + creator_zwave_base_port + 3)
 
 // -------------- IMU Configuration --------------------------
 var config = matrix_io.malos.v1.driver.DriverConfig.create({
@@ -74,23 +78,48 @@ errorImu.on('message', (error_message) => {
 
 var data = new Uint8Array(1);
 
+function list(){
+    var init_config = matrix_io.malos.v1.driver.DriverConfig.create({
+        zwave: matrix_io.malos.v1.comm.ZWaveMsg.create({
+            operation: matrix_io.malos.v1.comm.ZWaveMsg.ZWaveOperations.LIST
+        })
+    });	
+    
+    return configZWaveSocket.send(
+            matrix_io.malos.v1.driver.DriverConfig.encode(init_config).finish());        
+}
+
+
 function set_state(value){
-  data[0] = value
-  var init_config = matrix_io.malos.v1.driver.DriverConfig.create({
+    receiveListInfo.subscribe('');
+
+    receiveListInfo.on('message', (data) => {
+        var zw = matrix_io.malos.v1.comm.ZWaveMsg.decode(data);
+        async.map(zw.node, function(node, cb){
+            if (node.serviceName.contains('Switch Multilevel')) // change here if working with different device
+                cb(node.serviceName);
+        }, function(result){
+            serviceToSend = result;
+        })
+    })
+    if(!_.isNull(serviceToSend)){
+        data[0] = value
+        // if working with different device needs to change the zwclass and cmd
+        var init_config = matrix_io.malos.v1.driver.DriverConfig.create({
                 zwave: matrix_io.malos.v1.comm.ZWaveMsg.create({
                     operation: matrix_io.malos.v1.comm.ZWaveMsg.ZWaveOperations.SEND,
-                    serviceToSend: "Switch Binary [f7abf7fc0600]",
+                    serviceToSend: serviceToSend,
                     zwaveCmd: matrix_io.malos.v1.comm.ZWaveMsg.ZWaveCommand.create({
-                        zwclass: matrix_io.malos.v1.comm.ZWaveClassType.COMMAND_CLASS_SWITCH_BINARY,
-			cmd: matrix_io.malos.v1.comm.ZWaveCmdType.SWITCH_BINARY_SET,
+                        zwclass: matrix_io.malos.v1.comm.ZWaveClassType.COMMAND_CLASS_SWITCH_MULTILEVEL,
+			            cmd: matrix_io.malos.v1.comm.ZWaveCmdType.SWITCH_MULTILEVEL_SET,
                         params: data
                     })
                 })                 
             });
 
-
-            return configZWaveSocket.send(matrix_io.malos.v1.driver.DriverConfig.encode(init_config).finish());            
-
+            return configZWaveSocket.send(matrix_io.malos.v1.driver.DriverConfig.encode(init_config).finish());
+    } else console.log("No Switch Multilevel detected!");
+    
 }
 
 function toggle(){
@@ -107,5 +136,5 @@ function toggle(){
         }
     });
 }
-
+list()
 toggle()
