@@ -1,32 +1,22 @@
 #!/bin/bash
 
-function reset_creator(){
-  echo 18 > /sys/class/gpio/export 2>/dev/null
-  echo out > /sys/class/gpio/gpio18/direction
-  echo 1 > /sys/class/gpio/gpio18/value
-  echo 0 > /sys/class/gpio/gpio18/value
-  echo 1 > /sys/class/gpio/gpio18/value
-}
+case $1 in
+  "copy" )
+    sudo cp -avr /usr/share/matrixlabs/matrixio-devices/blob/system_creator.bit /usr/share/matrixlabs/matrixio-devices/blob/system_creator_zigbee.bit
+    sudo cp -avr ./system_zwave.bit /usr/share/matrixlabs/matrixio-devices/blob/system_creator.bit
+    echo "MATRIXIO Creator init FPGA firmware has been replaced to support Zwave in ttyS0"
+    ;;
+  "remove")
+    sudo cp -avr /usr/share/matrixlabs/matrixio-devices/blob/system_creator_zigbee.bit /usr/share/matrixlabs/matrixio-devices/blob/system_creator.bit
+    echo "Set Defult MATRIXIO Creator init FPGA firmware with Zigbee in ttyS0"
+    ;;
+  *)
+  echo "Use: "
+  echo " ./fpga_program.bash copy " 
+  echo "       Replace FPGA firmware with Zwave port in ttyS0"
+  echo "./fpga_program.bash remove" 
+  echo "       Set default FPGA firmware with ZigBee port in ttyS0" 
+esac
 
-function try_program_creator() {
-  reset_creator
-  sleep 0.1
-  xc3sprog -c matrix_creator system_zwave.bit -p 1 > /dev/null 2> /dev/null
-}
-
-function program_creator(){
-count=0
-while [  $count -lt 5 ]; do
-  try_program_creator
-  if [ $? -eq 0 ];then
-        echo "**** MATRIX Creator FPGA has been programmed!"
-	./fpga_info
-        exit 0
-   fi
-  let count=count+1
-done
-}
-
-echo "**** Could not program FPGA"
 exit 1
 
