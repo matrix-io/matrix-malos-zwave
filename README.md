@@ -91,7 +91,7 @@ $
 
 ```
 
-Then you need to reboot your device. **This process should be run just one time**. The ZM5202 will keep this configuration.
+Then reboot your device. **This process should be run just one time**. The ZM5202 will keep this configuration.
 
 ### Change FPGA Firmware
 
@@ -141,7 +141,6 @@ malos-zwave
 ```
 
 ### Protocol
-[UPDATE]
 
 First of all, you need to know that there are some steps to follow to work:
 
