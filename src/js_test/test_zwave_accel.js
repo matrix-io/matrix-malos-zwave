@@ -13,6 +13,7 @@
 const matrix_io = require('matrix-protos').matrix_io;
 const zmq = require('zmq');
 const _ = require('lodash');
+const async = require('async');
 
 const CREATOR_IP = '127.0.0.1';
 const CREATOR_ZWAVE_BASE_PORT = 50001; // port for ZWave MALOS
@@ -147,7 +148,7 @@ zwave.data = create_socket(CREATOR_IP, CREATOR_ZWAVE_DATA_PORT, 'sub', (buffer) 
   var zwave_data = ZWAVE_MESSAGE_PROTO.decode(buffer);
   
   async.map(zwave_data.node, (node, cb) => { //Find the matching node
-    if (node.serviceName.contains(DEVICE_SERVICE_NAME)) cb(node.serviceName);
+    if (node.serviceName.includes(DEVICE_SERVICE_NAME)) cb(node.serviceName);
   }, (result) => {
     service_to_send = result;
   })
@@ -157,7 +158,9 @@ zwave.data = create_socket(CREATOR_IP, CREATOR_ZWAVE_DATA_PORT, 'sub', (buffer) 
 // -------------- Execute code --------------------------
 
 //Send list command
+console.log('ZWave list');
 zwave.config.send(DRIVER_CONFIG_PROTO.encode(zwave_list_config_params).finish());
 
 //Configure IMU so we can interact with accelerometer
-imu.config.send(DRIVER_CONFIG_PROTO.encode(imu_base_config_params).finish());  
+console.log('Change device state on accelerometer changes');
+imu.config.send(DRIVER_CONFIG_PROTO.encode(imu_base_config_params).finish());
