@@ -9,158 +9,204 @@
 // BasePort + 2 => Error port. Receive errros from device.
 // BasePort + 3 => Data port. Receive data from device.
 
-// -------------- Dependencies --------------------------------
-const matrix_io = require('matrix-protos').matrix_io;
-const zmq = require('zmq');
-const _ = require('lodash');
-const async = require('async');
+// -------------- Dependencies -------------------------------
+var matrix_io = require('matrix-protos').matrix_io;
+var zmq = require('zmq');
+var _ = require('lodash');
+var async = require('async');
 
+// ------------ Z-Wave ----------------------------------------
+
+const DEFAULT_PING_INTERVAL = 500;
 const CREATOR_IP = '127.0.0.1';
 const CREATOR_ZWAVE_BASE_PORT = 50001; // port for ZWave MALOS
 const CREATOR_ZWAVE_PING_PORT = CREATOR_ZWAVE_BASE_PORT + 1;
 const CREATOR_ZWAVE_ERROR_PORT = CREATOR_ZWAVE_BASE_PORT + 2;
 const CREATOR_ZWAVE_DATA_PORT = CREATOR_ZWAVE_BASE_PORT + 3;
+
+/*
+const DEVICE_TO_USE = {
+  name: 'Switch Multilevel',
+  class: 'COMMAND_CLASS_SWITCH_MULTILEVEL',
+  command: 'SWITCH_MULTILEVEL_SET'
+};
+*/
+
+const DEVICE_TO_USE = {
+  name: 'Switch Binary',
+  class: 'COMMAND_CLASS_SWITCH_BINARY',
+  command: 'SWITCH_BINARY_SET'
+};
+
+DEVICE_TO_USE.classNumber = matrix_io.malos.v1.comm.ZWaveClassType[DEVICE_TO_USE.class];
+
+let serviceToSend = ''; // The device we want to send this to, needs to be found
+
+// ------------- IMU ------------------------------------------
 const CREATOR_IMU_BASE_PORT = 20013;
 const CREATOR_IMU_PING_PORT = CREATOR_IMU_BASE_PORT + 1;
 const CREATOR_IMU_ERROR_PORT = CREATOR_IMU_BASE_PORT + 2;
 const CREATOR_IMU_DATA_PORT = CREATOR_IMU_BASE_PORT + 3;
-const IMU_PROTO = matrix_io.malos.v1.sense.Imu;
-const ZWAVE_MESSAGE_PROTO = matrix_io.malos.v1.comm.ZWaveMsg;
-const DRIVER_CONFIG_PROTO = matrix_io.malos.v1.driver.DriverConfig;
 
-// For this sample we are only going to use a Multilevel Switch, change values accordingly
-const ZWAVE_CLASS = matrix_io.malos.v1.comm.ZWaveClassType.COMMAND_CLASS_SWITCH_MULTILEVEL;
-const ZWAVE_CMD = matrix_io.malos.v1.comm.ZWaveCmdType.SWITCH_MULTILEVEL_SET;
-const DEVICE_SERVICE_NAME = 'Switch Multilevel';
-let service_to_send = '';
-
-// States, Hex values to set the Multilevel Switch
-const ON = 0xFF; 
-const OFF = 0x00;
-
-var imu, zwave; //Socket objects
+const HEX_ON = 0xFF;
+const HEX_OFF = 0x00;
 
 /**
- * Creates a zmq socket object
- * @param {String} ip Socket ip
- * @param {Number} port Socket port
- * @param {String} [type='push'] Socket type such as 'push', 'pull', sub', etc...
- * @param {Object} message_function Function to trigger for subscriptions
+ * 
+ * @param {string} ip 
+ * @param {number} port
+ * @param {*} options 
+ * @param {*} type 
  */
-function create_socket(ip, port, type, message_function) {
+function createSocket(ip, port, options, type) {
   if (!type) type = 'push';
-  let socket = zmq.socket(type);
-  socket.connect('tcp://' + ip + ':' + port);
+  var socket = zmq.socket(type);
 
-  //Used for error and data sockets
+  socket.connect('tcp://' + ip + ':' + (port));
+  socket.send(''); //Pings once
+
   if (type === 'sub') socket.subscribe('');
-  if (message_function) socket.on('message', message_function);
+
+  if (options && options.pingInterval) {
+    setInterval(() => {
+      socket.send('');
+    }, options.pingInterval);
+  }
 
   return socket;
 }
 
-/**
- * Executes a function and then executes it again every ms milliseconds
- * @param {Object} a_function Function to execute
- * @param {Number} ms Time in milliseconds
- */
-function do_once_then_interval(a_function, ms) {
-  a_function();
-  return setInterval(a_function, ms);
-}
 
-/**
- * Changes the state of the ZWave switch
- * @param {Number} value Hexadecimal value to set
- */
-function set_state(value) {
-  var data_storage = new Uint8Array(1);
-  if (!_.isNull(service_to_send)) {
-    data_storage[0] = value
-    // if working with different device needs to change the zwclass and cmd
-    var init_config = DRIVER_CONFIG_PROTO.create({
-      zwave: ZWAVE_MESSAGE_PROTO.create({
-        operation: ZWAVE_MESSAGE_PROTO.ZWaveOperations.SEND,
-        serviceToSend: service_to_send,
-        zwaveCmd: ZWAVE_MESSAGE_PROTO.ZWaveCommand.create({
-          zwclass: ZWAVE_CLASS,
-          cmd: ZWAVE_CMD,
-          params: data_storage
-        })
-      })
-    });
-
-    return zwave.config.send(DRIVER_CONFIG_PROTO.encode(init_config).finish());
-  } else console.log("No Switch Multilevel detected!");
-
-}
-
-// ----------------- Sockets ------------------------
-imu = {
-  config: create_socket(CREATOR_IP, CREATOR_IMU_BASE_PORT), //Config
-  ping: create_socket(CREATOR_IP, CREATOR_IMU_PING_PORT), //Keep alive
-  error: create_socket(CREATOR_IP, CREATOR_IMU_ERROR_PORT, 'sub', () => {
-    console.log('Message received: IMU error: ', error_message.toString('utf8'));
-   }) //Errors
+//Socket collection used to send and read ZWave commands
+var zwave = {
+  config: createSocket(CREATOR_IP, CREATOR_ZWAVE_BASE_PORT),
+  ping: createSocket(CREATOR_IP, CREATOR_ZWAVE_PING_PORT, { pingInterval: DEFAULT_PING_INTERVAL }),
+  error: createSocket(CREATOR_IP, CREATOR_ZWAVE_ERROR_PORT, {}, 'sub'),
+  data: createSocket(CREATOR_IP, CREATOR_ZWAVE_DATA_PORT, {}, 'sub'),
 };
 
-zwave = {
-  config: create_socket(CREATOR_IP, CREATOR_ZWAVE_BASE_PORT), //Config
-  ping: create_socket(CREATOR_IP, CREATOR_ZWAVE_PING_PORT), //Keep alive
-  error: create_socket(CREATOR_IP, CREATOR_ZWAVE_ERROR_PORT, 'sub', () => { 
-    console.log('Message received: ZWave error: ', error_message.toString('utf8'));
-  }) //Errors
+//-----  Print the errors that the Zwave driver sends ------------
+zwave.error.on('message', function (err) {
+  process.stdout.write('Message received: ' + err.toString('utf8') + "\n");
+});
+
+
+function list() {
+  console.log('List!');
+  var list_config = matrix_io.malos.v1.driver.DriverConfig.create({
+    zwave: matrix_io.malos.v1.comm.ZWaveMsg.create({
+      operation: matrix_io.malos.v1.comm.ZWaveMsg.ZWaveOperations.LIST
+    })
+  });
+
+  return zwave.config.send(matrix_io.malos.v1.driver.DriverConfig.encode(list_config).finish());
+}
+
+//Used to send and read IMU commands
+var imu = {
+  config: createSocket(CREATOR_IP, CREATOR_IMU_BASE_PORT),
+  ping: createSocket(CREATOR_IP, CREATOR_IMU_PING_PORT, { pingInterval: DEFAULT_PING_INTERVAL }),
+  error: createSocket(CREATOR_IP, CREATOR_IMU_ERROR_PORT, {}, 'sub'),
+  data: createSocket(CREATOR_IP, CREATOR_IMU_DATA_PORT, {}, 'sub'),
 };
-
-//Ping once, then keep pinging every 500ms
-do_once_then_interval(() => {
-  zwave.ping.send('');
-  imu.ping.send('');
-}, 500);
-
 
 // -------------- IMU Configuration --------------------------
-var imu_base_config_params = DRIVER_CONFIG_PROTO.create({
+var imuListenCommand = matrix_io.malos.v1.driver.DriverConfig.create({
   delayBetweenUpdates: 1.0,  // 2 seconds between updates
   timeoutAfterLastPing: 6.0  // Stop sending updates 6 seconds after pings.
 });
 
-// -------------- ZWAVE Configuration --------------------------
-//Prepare a list command
-var zwave_list_config_params = DRIVER_CONFIG_PROTO.create({
-  zwave: ZWAVE_MESSAGE_PROTO.create({
-    operation: ZWAVE_MESSAGE_PROTO.ZWaveOperations.LIST
-  })
+//Start listening for IMU updates (MALOS)
+imu.config.send(matrix_io.malos.v1.driver.DriverConfig.encode(imuListenCommand).finish());
+
+//Print IMU errors
+imu.error.on('message', (err) => {
+  console.log('Message received: IMU error: ', err.toString('utf8'));
 });
 
-// -------------- IMU data handler --------------------------
 
-//According to the accelerometer Z value we are going to change the device value
-imu.data = create_socket(CREATOR_IP, CREATOR_IMU_DATA_PORT, 'sub', (buffer) => {
-  var imu_data = IMU_PROTO.decode(buffer);
-  if (imu_data.accelZ < 0) set_state(OFF);
-  else set_state(ON);
-}); //Used to receive IMU data
+//Handle IMU data
+function set_state(value) {
+  console.log('Updating state! (' + value + ')');
+  if (!_.isNull(serviceToSend)) {
+    var paramsData = new Uint8Array(1);
+    paramsData[0] = value;
+    
+    var init_config = matrix_io.malos.v1.driver.DriverConfig.create({
+      zwave: matrix_io.malos.v1.comm.ZWaveMsg.create({
+        operation: matrix_io.malos.v1.comm.ZWaveMsg.ZWaveOperations.SEND, //A message to be sent
+        serviceToSend: serviceToSend,
+        zwaveCmd: matrix_io.malos.v1.comm.ZWaveMsg.ZWaveCommand.create({
+          zwclass: matrix_io.malos.v1.comm.ZWaveClassType[DEVICE_TO_USE.class],
+          cmd: matrix_io.malos.v1.comm.ZWaveCmdType[DEVICE_TO_USE.command],
+          params: paramsData
+        })
+      })
+    });
 
-// -------------- ZWave data handler --------------------------
+    return zwave.config.send(matrix_io.malos.v1.driver.DriverConfig.encode(init_config).finish());
+  } else {
+    console.log('No', DEVICE_TO_USE.name, 'detected!');
+  }
 
-zwave.data = create_socket(CREATOR_IP, CREATOR_ZWAVE_DATA_PORT, 'sub', (buffer) => {
-  var zwave_data = ZWAVE_MESSAGE_PROTO.decode(buffer);
+}
+
+var pastState;
+
+function toggle() {
+  console.log('Enabled Z axis triggering!');
+
+  imu.data.on('message', (buffer) => {
+    var newState;
+    //TODO Don't turn on if already on, and vice versa
+    //console.log('IMU Data!');
+    var data = matrix_io.malos.v1.sense.Imu.decode(buffer);
+    //console.log('ACCEL:', data.accelZ);
+    newState = (data.accelZ < 0) ? HEX_OFF : HEX_ON;
+    if (newState != pastState) {
+      console.log('Changing to:', newState);
+      pastState = newState;
+      set_state(newState);
+    }
+  });
+}
+
+//Listen to ZWave activity
+zwave.data.on('message', (data) => {
+
+  console.log('ZWave data!');
+  var zw = matrix_io.malos.v1.comm.ZWaveMsg.decode(data);
   
-  async.map(zwave_data.node, (node, cb) => { //Find the matching node
-    if (node.serviceName.includes(DEVICE_SERVICE_NAME)) cb(node.serviceName);
-  }, (result) => {
-    service_to_send = result;
-  })
-}); //Used to receive ZWave data
+  //Look for the device we want to use
+  async.map(zw.node, function (node, cb) {
+    if (node.serviceName.includes(DEVICE_TO_USE.name)) {
+      console.log('Service found:', node.serviceName);
+      
+      //Use just this if you don't want to list the commands ///
+      //cb(node.serviceName);
+      //////////////////////////////////////////////////////////
 
+      //Use this instead to list the commands ///////////////////////////
+      async.some(node.zwaveClass, function (zwaveClass, cb) {
+        if (zwaveClass.zwaveClass === DEVICE_TO_USE.classNumber) {
+          //Class found, list the commands
+          console.log('Commands found:');
+          async.each(zwaveClass.command, function (command, next) {
+            console.log(JSON.stringify(command));
+            next();
+          }, cb);
+        } else { 
+          cb(null, false);
+        }
+      }, () => {
+        cb(node.serviceName);
+      });
+      ////////////////////////////////////////////////////////////////////
+    }
+  }, function (result) {
+    serviceToSend = result;
+  });
+});
 
-// -------------- Execute code --------------------------
-
-//Send list command
-console.log('ZWave list');
-zwave.config.send(DRIVER_CONFIG_PROTO.encode(zwave_list_config_params).finish());
-
-//Configure IMU so we can interact with accelerometer
-console.log('Change device state on accelerometer changes');
-imu.config.send(DRIVER_CONFIG_PROTO.encode(imu_base_config_params).finish());
+list(); //List ZWave devices
+toggle();
