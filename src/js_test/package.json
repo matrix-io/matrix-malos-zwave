@@ -4,12 +4,16 @@
   "version": "0.0.1",
   "license": "GPL-3.0",
   "homepage": "https://github.com/matrix-io/matrix-creator-malos",
-  "repository" : "https://github.com/matrix-io/matrix-creator-malos",
+  "repository": "https://github.com/matrix-io/matrix-creator-malos",
   "devDependencies": {
-    "matrix-protos": "0.0.11",
-    "zmq": "*",
-    "mic": "*",
     "async": "^2.6.0",
-    "lodash": "^3.10.0"
+    "lodash": "^3.10.0",
+    "matrix-protos": "0.0.11",
+    "mic": "*",
+    "protobufjs": "^5.0.1",
+    "zmq": "*"
+  },
+  "dependencies": {
+    "lodash": "^3.10.1"
   }
 }

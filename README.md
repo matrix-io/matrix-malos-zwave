@@ -137,7 +137,7 @@ sudo reboot
 sudo pkill -9 malos-zwave
 
 # to run manually, just type `malos`
-malos-zwave
+malos_zwave
 ```
 
 ### Protocol
