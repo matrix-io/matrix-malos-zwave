@@ -18,39 +18,38 @@ var matrix_io = require('matrix-protos').matrix_io
 
 var zmq = require('zmq')
 var configSocket = zmq.socket('push')
-configSocket.connect('tcp://' + creator_ip + ':' + creator_zwave_base_port /* config */)
+configSocket.connect('tcp://' + creator_ip + ':' + creator_zwave_base_port /* config */ )
 
 //-----  Print the errors that the Zwave driver sends ------------
 
-var errorSocket = zmq.socket('sub'); 
+var errorSocket = zmq.socket('sub');
 errorSocket.connect('tcp://' + creator_ip + ':' +
-	                    (creator_zwave_base_port + 2));
+  (creator_zwave_base_port + 2));
 errorSocket.subscribe('');
 errorSocket.on('message', function(error_message) {
-	  process.stdout.write('Message received: ' + error_message.toString('utf8') +
-		                         "\n");
+  process.stdout.write('Message received: ' + error_message.toString('utf8') +
+    "\n");
 });
 
 var updateSocket = zmq.socket('sub')
 updateSocket.connect('tcp://' + creator_ip + ':' + (creator_zwave_base_port + 3))
 updateSocket.subscribe('')
 updateSocket.on('message', (zwave_buffer) => {
-  var  zwaveObject = matrix_io.malos.v1.comm.ZWaveMsg.decode(zwave_buffer)
-   _.filter(zwaveObject.node, function(o){console.log(o.serviceName)})
+  var zwaveObject = matrix_io.malos.v1.comm.ZWaveMsg.decode(zwave_buffer)
+  _.filter(zwaveObject.node, function(o) {
+    console.log(o.serviceName)
+  })
   process.exit(0)
 });
 
-function listNodes(){
-	var init_config = matrix_io.malos.v1.driver.DriverConfig.create({
-			zwave: matrix_io.malos.v1.comm.ZWaveMsg.create({
-						operation: matrix_io.malos.v1.comm.ZWaveMsg.ZWaveOperations.LIST
-			})
-	})
-return configSocket.send(
-		  matrix_io.malos.v1.driver.DriverConfig.encode(init_config).finish());
+function listNodes() {
+  var init_config = matrix_io.malos.v1.driver.DriverConfig.create({
+    zwave: matrix_io.malos.v1.comm.ZWaveMsg.create({
+      operation: matrix_io.malos.v1.comm.ZWaveMsg.ZWaveOperations.LIST
+    })
+  })
+  return configSocket.send(
+    matrix_io.malos.v1.driver.DriverConfig.encode(init_config).finish());
 }
 
-
 listNodes();
-
-

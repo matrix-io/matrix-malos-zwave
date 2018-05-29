@@ -80,13 +80,15 @@ function createSocket(ip, port, options, type) {
 //Socket collection used to send and read ZWave commands
 var zwave = {
   config: createSocket(CREATOR_IP, CREATOR_ZWAVE_BASE_PORT),
-  ping: createSocket(CREATOR_IP, CREATOR_ZWAVE_PING_PORT, { pingInterval: DEFAULT_PING_INTERVAL }),
+  ping: createSocket(CREATOR_IP, CREATOR_ZWAVE_PING_PORT, {
+    pingInterval: DEFAULT_PING_INTERVAL
+  }),
   error: createSocket(CREATOR_IP, CREATOR_ZWAVE_ERROR_PORT, {}, 'sub'),
   data: createSocket(CREATOR_IP, CREATOR_ZWAVE_DATA_PORT, {}, 'sub'),
 };
 
 //-----  Print the errors that the Zwave driver sends ------------
-zwave.error.on('message', function (err) {
+zwave.error.on('message', function(err) {
   process.stdout.write('Message received: ' + err.toString('utf8') + "\n");
 });
 
@@ -105,15 +107,17 @@ function list() {
 //Used to send and read IMU commands
 var imu = {
   config: createSocket(CREATOR_IP, CREATOR_IMU_BASE_PORT),
-  ping: createSocket(CREATOR_IP, CREATOR_IMU_PING_PORT, { pingInterval: DEFAULT_PING_INTERVAL }),
+  ping: createSocket(CREATOR_IP, CREATOR_IMU_PING_PORT, {
+    pingInterval: DEFAULT_PING_INTERVAL
+  }),
   error: createSocket(CREATOR_IP, CREATOR_IMU_ERROR_PORT, {}, 'sub'),
   data: createSocket(CREATOR_IP, CREATOR_IMU_DATA_PORT, {}, 'sub'),
 };
 
 // -------------- IMU Configuration --------------------------
 var imuListenCommand = matrix_io.malos.v1.driver.DriverConfig.create({
-  delayBetweenUpdates: 2.0,  // 2 seconds between updates
-  timeoutAfterLastPing: 6.0  // Stop sending updates 6 seconds after pings.
+  delayBetweenUpdates: 2.0, // 2 seconds between updates
+  timeoutAfterLastPing: 6.0 // Stop sending updates 6 seconds after pings.
 });
 
 //Start listening for IMU updates (MALOS)
@@ -131,7 +135,7 @@ function set_state(value) {
   if (!_.isNull(serviceToSend)) {
     var paramsData = new Uint8Array(1);
     paramsData[0] = value;
-    
+
     var init_config = matrix_io.malos.v1.driver.DriverConfig.create({
       zwave: matrix_io.malos.v1.comm.ZWaveMsg.create({
         operation: matrix_io.malos.v1.comm.ZWaveMsg.ZWaveOperations.SEND, //A message to be sent
@@ -173,26 +177,26 @@ zwave.data.on('message', (data) => {
 
   console.log('ZWave data!');
   var zw = matrix_io.malos.v1.comm.ZWaveMsg.decode(data);
-  
+
   //Look for the device we want to use
-  async.map(zw.node, function (node, cb) {
+  async.map(zw.node, function(node, cb) {
     if (node.serviceName.includes(DEVICE_TO_USE.name)) {
       console.log('Service found:', node.serviceName);
-      
+
       //Use just this if you don't want to list the commands ///
       //cb(node.serviceName);
       //////////////////////////////////////////////////////////
 
       //Use this instead to list the commands ///////////////////////////
-      async.some(node.zwaveClass, function (zwaveClass, cb) {
+      async.some(node.zwaveClass, function(zwaveClass, cb) {
         if (zwaveClass.zwaveClass === DEVICE_TO_USE.classNumber) {
           //Class found, list the commands
           console.log('Commands found:');
-          async.each(zwaveClass.command, function (command, next) {
+          async.each(zwaveClass.command, function(command, next) {
             console.log(JSON.stringify(command));
             next();
           }, cb);
-        } else { 
+        } else {
           cb(null, false);
         }
       }, () => {
@@ -200,7 +204,7 @@ zwave.data.on('message', (data) => {
       });
       ////////////////////////////////////////////////////////////////////
     }
-  }, function (result) {
+  }, function(result) {
     serviceToSend = result;
   });
 });
