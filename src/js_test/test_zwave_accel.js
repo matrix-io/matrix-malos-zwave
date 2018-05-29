@@ -112,7 +112,7 @@ var imu = {
 
 // -------------- IMU Configuration --------------------------
 var imuListenCommand = matrix_io.malos.v1.driver.DriverConfig.create({
-  delayBetweenUpdates: 1.0,  // 2 seconds between updates
+  delayBetweenUpdates: 2.0,  // 2 seconds between updates
   timeoutAfterLastPing: 6.0  // Stop sending updates 6 seconds after pings.
 });
 
@@ -158,10 +158,7 @@ function toggle() {
 
   imu.data.on('message', (buffer) => {
     var newState;
-    //TODO Don't turn on if already on, and vice versa
-    //console.log('IMU Data!');
     var data = matrix_io.malos.v1.sense.Imu.decode(buffer);
-    //console.log('ACCEL:', data.accelZ);
     newState = (data.accelZ < 0) ? HEX_OFF : HEX_ON;
     if (newState != pastState) {
       console.log('Changing to:', newState);

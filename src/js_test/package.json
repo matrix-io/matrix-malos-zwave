@@ -12,5 +12,8 @@
     "mic": "*",
     "protobufjs": "^5.0.1",
     "zmq": "*"
+  },
+  "dependencies": {
+    "lodash": "^3.10.1"
   }
 }

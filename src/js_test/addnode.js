@@ -12,21 +12,20 @@
 var creator_ip = '127.0.0.1'
 var creator_servo_base_port = 50001 // port for ZWave MALOS
 
-var protoBuf = require("protobufjs");
-var protoBuilder = protoBuf.loadProtoFile('../../protocol-buffers/malos/driver.proto')
-var matrixMalosBuilder = protoBuilder.build("matrix_malos")
+var matrix_io = require('matrix-protos').matrix_io
 
 var zmq = require('zmq')
 var configSocket = zmq.socket('push')
 configSocket.connect('tcp://' + creator_ip + ':' + creator_servo_base_port /* config */)
 
-function removeNode() {
-  var zwave_cmd = new matrixMalosBuilder.ZWaveMsg;
-  zwave_cmd.set_operation(matrixMalosBuilder.ZWaveMsg.ZWaveOperations.ADDNODE);
-
-  var config = new matrixMalosBuilder.DriverConfig;
-  config.set_zwave(zwave_cmd);
-  configSocket.send(config.encode().toBuffer());
+function addNodes(){
+	var init_config = matrix_io.malos.v1.driver.DriverConfig.create({
+			zwave: matrix_io.malos.v1.comm.ZWaveMsg.create({
+						operation: matrix_io.malos.v1.comm.ZWaveMsg.ZWaveOperations.ADDNODE
+			})
+	})
+return configSocket.send(
+		  matrix_io.malos.v1.driver.DriverConfig.encode(init_config).finish());
 }
 
-removeNode()
+addNodes()

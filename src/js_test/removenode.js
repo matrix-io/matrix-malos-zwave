@@ -10,23 +10,45 @@
 // BasePort + 3 => Data port. Receive data from device.
 
 var creator_ip = '127.0.0.1'
-var creator_servo_base_port = 50001 // port for ZWave MALOS
+var creator_zwave_base_port = 50001 // port for ZWave MALOS
 
-var protoBuf = require("protobufjs");
-var protoBuilder = protoBuf.loadProtoFile('../../protocol-buffers/malos/driver.proto')
-var matrixMalosBuilder = protoBuilder.build("matrix_malos")
+var matrix_io = require('matrix-protos').matrix_io
 
 var zmq = require('zmq')
 var configSocket = zmq.socket('push')
-configSocket.connect('tcp://' + creator_ip + ':' + creator_servo_base_port /* config */)
+configSocket.connect('tcp://' + creator_ip + ':' + creator_zwave_base_port /* config */)
 
-function removeNode() {
-  var zwave_cmd = new matrixMalosBuilder.ZWaveMsg;
-  zwave_cmd.set_operation(matrixMalosBuilder.ZWaveMsg.ZWaveOperations.REMOVENODE);
 
-  var config = new matrixMalosBuilder.DriverConfig;
-  config.set_zwave(zwave_cmd);
-  configSocket.send(config.encode().toBuffer());
+
+// ------------ Starting to ping the driver -----------------------
+
+var pingSocket = zmq.socket('push');
+pingSocket.connect('tcp://' + creator_ip + ':' + (creator_zwave_base_port + 1));
+pingSocket.send('');  // Ping the first time.
+
+setInterval(function() { pingSocket.send(''); }, 1000);
+
+//-----  Print the errors that the ZigBee driver sends ------------
+
+var errorSocket = zmq.socket('sub'); 
+errorSocket.connect('tcp://' + creator_ip + ':' +
+	                    (creator_zwave_base_port + 2));
+errorSocket.subscribe('');
+errorSocket.on('message', function(error_message) {
+	  process.stdout.write('Message received: ' + error_message.toString('utf8') +
+		                         "\n");
+});
+
+
+function removeNode(){
+	var init_config = matrix_io.malos.v1.driver.DriverConfig.create({
+			zwave: matrix_io.malos.v1.comm.ZWaveMsg.create({
+						operation: matrix_io.malos.v1.comm.ZWaveMsg.ZWaveOperations.REMOVENODE
+			})
+	});
+	return configSocket.send(
+			  matrix_io.malos.v1.driver.DriverConfig.encode(init_config).finish());
 }
 
 removeNode()
+
