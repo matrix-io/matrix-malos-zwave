@@ -52,11 +52,10 @@ const HEX_ON = 0xFF;
 const HEX_OFF = 0x00;
 
 /**
- * 
- * @param {string} ip 
- * @param {number} port
- * @param {*} options 
- * @param {*} type 
+ * @param {string} ip Device IP
+ * @param {number} port Port
+ * @param {object} options Object to specify parameters. { pingInterval: number}
+ * @param {string} type Socket type ('push'|'sub')
  */
 function createSocket(ip, port, options, type) {
   if (!type) type = 'push';
