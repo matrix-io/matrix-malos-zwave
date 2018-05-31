@@ -8,7 +8,7 @@
   "devDependencies": {
     "async": "^2.6.0",
     "lodash": "^3.10.0",
-    "matrix-protos": "0.0.11",
+    "matrix-protos": "",
     "mic": "*",
     "protobufjs": "^5.0.1",
     "zmq": "*"
