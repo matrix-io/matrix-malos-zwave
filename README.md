@@ -17,8 +17,7 @@ sudo apt-get update
 sudo apt-get upgrade
 
 # Install MATRIX Creator Init
-sudo apt-get matrixio-creator-init
-
+sudo apt-get matrixio-creator-init matrixio-kernel-modules
 
 # Install Zwave Utils 
 sudo apt-get matrixio-zwave-utils
@@ -27,12 +26,13 @@ sudo apt-get matrixio-zwave-utils
 
 ### Zwave Utils Setup
 
-Run `sudo zwave_conf` in order to set up the ZM5202 in the MATRIX Creator. 
+Run `zwave_conf` in order to set up the ZM5202 in the MATRIX Creator. 
 
-```
-$ sudo /usr/bin/zwave_conf 
-*** FPGA programmed!
-*** DE88C MATRIX Creator US has been detected  # US example
+```bash
+$ zwave_conf 
+ID.conf: line 1: INFO:: command not found
+*** DE88C MATRIX Creator US has been detected 
+INFO: [/dev/matrixio_regmap] was opened
 #ZM5202 Response: 53 : AA
 #Serie 500 chip found
 #Chip Ready
@@ -42,7 +42,8 @@ $ sudo /usr/bin/zwave_conf
 #NVR check process OK 
 NVR_Status=1
 #Zwave NVR has been programmed !!! 
-ZM5202 Response: 53
+INFO: [/dev/matrixio_regmap] was opened
+#ZM5202 Response: 53 : AA
 Status: 0
 Chip Ready
 ....0
@@ -87,39 +88,85 @@ Chip Ready
 ....55
 ....63
 *** Zwave Init Set Up Complete. Reboot your device
-$ 
-
 ```
 
 Then reboot your device. **This process should be run just one time**. The ZM5202 will keep this configuration.
-
-### Change FPGA Firmware
-
-The default MATRIXIO FPGA firmware has connected the `/dev/ttyS0` to the ZigBee implementation. In order to change it and connect the Zwave to `ttyS0` run:
-
-```
-cd blob/
-sudo ./zwave_setup copy
-```
-
-It replaces the default FPGA firmware and set a special firmware with the Zwave support in the `ttyS0`. This firmware **DISABLE** the **ZigBee** support.
-
-To revert and set the default firmware, run:
-
-```
-cd blob/
-sudo ./zwave_setup copy
-```
-
-After complete the Zwave setup in the `ttyS0` port, reboot your device.
 
 ### Install
 ```
 sudo apt-get install matrixio-malos-zwave
 sudo reboot
 ```
+#### Configuration
 
-**Note:** At this point, on next start, `matrixio-malos-zwave` will be running as a service.
+The matrixio-kernel-modules enable a new serial port called `ttyMATRIX0`. This port is the communication channel to the ZM5202. In the **matrixio-malos-zwave** installation process it ask for some configuration of **zipgateway**:
+
+* The serial port where z-wave controller is connected: **/dev/ttyMATRIX0** [mandatory]
+* The IPv6 address of the Z/IP Gateway: **fd00:aaaa::3** [optional]
+* IPv6 prefix of the Z-Wave network: **fd00:bbbb::1** [optional]
+* Enable wireless configuration of Z/IP Gateway: **wired** [optional]
+* Wired network interface where the ZIP Client will be connected to: **eth0**
+
+You could check if the zipgateway are runnig with `more /tmp/zipgateway.log`:
+```
+17170 Opening config file /usr/local/etc/zipgateway.cfg
+Starting Contiki
+Opening eeprom file /usr/local/var/lib/zipgateway/eeprom.dat
+Lan device tap0
+LAN HW addr B6:0C:53:20:46:76
+17185 Starting zipgateway ver2_61 build ver2_61
+17185 Resetting ZIP Gateway
+17185 Using serial port /dev/ttyMATRIX0
+ SerialAPI: Serial API version     : 5.34
+17264 500 series chip version 0
+17267 I'am SUC
+17411 Key  class  80 
+F83C9C7888E766D743EA03DB7D97656B
+17422 Key  class  1 
+95F2E42BDE04EDEA8A3FAC9C4AB1339B
+17430 Key  class  2 
+0135D1F0BD3F692DAC03B98BAA009247
+17437 Key  class  4 
+690EB5CC6C6021418F29857142A5845F
+17441 Network shceme is:17441 S2 ACCESS
+17443 Resetting IMA
+17443 I'm a primary or inclusion controller.
+17443 Command classes updated
+17446  nodeid=1 0
+17446 Checking for new sessions
+17446 We should send a discover
+17450 Waiting for bridge
+17458 Version: Z-Wave 4.61, type 7
+17483 ................. the  version 0 ...............17489 NVM version is 2
+17494 L2 HW addr 00:1e:32:1b:5d:f2
+17494 
+17494 ZIP_Router_Reset: pan_lladdr: fc:f7:ab:f7:00:01  Home ID = 0xf7abf7fc 
+17494 Tunnel prefix ::
+17494 
+17494 Lan address fd00:aaaa::03
+17494 
+17494 Han address fd00:bbbb::01
+17494 
+17494 Gateway address fd00:aaaa::1234
+17494 
+17494 Unsolicited address fd00:aaaa::1234
+17494 
+ dynamic 
+ECDH Public key is 
+19990-03943-17692-46976-
+21533-53149-52534-13196-
+26418-19095-48486-46417-
+04619-62339-27522-60221-
+17628 DTLS server started
+17628 mDNS server started
+17628 DHCP client started
+17628 Starting zip tcp client
+17628 ZIP TCP Client Started.
+17628 No portal host defined. Running without portal.
+```
+
+#### Running as a service
+At this point, on next start, `matrixio-malos-zwave` will be running as a service called:`status matrixio-malos-zwave.service`.
 
 ``` 
 sudo systemctl status matrixio-malos-zwave
@@ -192,7 +239,7 @@ You can also remove a node with the `REMOVENODE` operation. All operations are i
 
 For instance (in the Raspberry):
 
-```
+```bash
 # Install npm (doesn't really matter what version, apt-get node is v0.10...)
 sudo apt-get install npm
 
@@ -212,7 +259,7 @@ node -v
 
 ## Pre-Requisites
 
-```
+```bash
 # Add repo and key
 curl https://apt.matrix.one/doc/apt-key.gpg | sudo apt-key add -
 echo "deb https://apt.matrix.one/raspbian $(lsb_release -sc) main" | sudo tee /etc/apt/sources.list.d/matrixlabs.list
@@ -230,26 +277,26 @@ apt-get install --yes libmatrixio-malos, matrixio-libzwaveip, matrixio-zipgatewa
 ## Dependencies
 It does have some package dependencies, so please make sure to install the pre-requisites.
 
-```
+```bash
 sudo apt-get install cmake g++ git libmatrixio-protos-dev libmatrixio-malos-dev libreadline-dev matrixio-libzwaveip-dev libxml2-dev libbsd-dev libncurses5-dev  libavahi-client-dev avahi-utils libreadline-dev libgflags-dev
 ```
 
 * Using **Raspbian Jessie** install:
 
-```
+```bash
 sudo apt-get install --yes libssl-dev
 ```
 
 * Using **Raspbian Stretch** install:
 
-```
+```bash
 sudo apt-get install --yes libssl1.0-dev
 ```
 
 
 To start working with **MATRIX Zwave Malos** directly, you'll need to run the following steps: 
 
-```
+```bash
 git clone https://github.com/matrix-io/matrix-malos-zwave/
 cd matrix-malos-zwave && mkdir build && cd build
 cmake ..
