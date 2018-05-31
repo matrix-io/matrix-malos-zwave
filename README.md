@@ -7,7 +7,7 @@ You can also use MALOS to query sensors of the [MATRIX Creator](https://creator.
 Connections to MALOS can be made both from localhost (127.0.0.1) and from remote computers that are on the same network.
 
 ### Zwave Initial Setup
-```
+```bash
 # Add repo and key
 curl https://apt.matrix.one/doc/apt-key.gpg | sudo apt-key add -
 echo "deb https://apt.matrix.one/raspbian $(lsb_release -sc) main" | sudo tee /etc/apt/sources.list.d/matrixlabs.list
@@ -93,7 +93,7 @@ Chip Ready
 Then reboot your device. **This process should be run just one time**. The ZM5202 will keep this configuration.
 
 ### Install
-```
+```bash
 sudo apt-get install matrixio-malos-zwave
 sudo reboot
 ```
@@ -105,10 +105,12 @@ The matrixio-kernel-modules enable a new serial port called `ttyMATRIX0`. This p
 * The IPv6 address of the Z/IP Gateway: **fd00:aaaa::3** [optional]
 * IPv6 prefix of the Z-Wave network: **fd00:bbbb::1** [optional]
 * Enable wireless configuration of Z/IP Gateway: **wired** [optional]
-* Wired network interface where the ZIP Client will be connected to: **eth0**
+* Wired network interface where the ZIP Client will be connected to: **eth0** [optional]
 
-You could check if the zipgateway are runnig with `more /tmp/zipgateway.log`:
-```
+You could check if the zipgateway are runing with `more /tmp/zipgateway.log`:
+```bash
+$ more /tmp/zipgateway.log
+
 17170 Opening config file /usr/local/etc/zipgateway.cfg
 Starting Contiki
 Opening eeprom file /usr/local/var/lib/zipgateway/eeprom.dat
@@ -168,18 +170,18 @@ ECDH Public key is
 #### Running as a service
 At this point, on next start, `matrixio-malos-zwave` will be running as a service called:`status matrixio-malos-zwave.service`.
 
-``` 
+```bash
 sudo systemctl status matrixio-malos-zwave
 ```
 
 ### Upgrade
-```
+```bash
 sudo apt-get update && sudo apt-get upgrade
 sudo reboot
 ```
 
 ### Starting manually
-```
+```bash
 # MALOS runs as a service, but to stop it run:
 sudo pkill -9 malos-zwave
 
