@@ -17,10 +17,10 @@ sudo apt-get update
 sudo apt-get upgrade
 
 # Install MATRIX Creator Init
-sudo apt-get matrixio-creator-init matrixio-kernel-modules
+sudo apt-get install matrixio-creator-init matrixio-kernel-modules
 
 # Install Zwave Utils 
-sudo apt-get matrixio-zwave-utils
+sudo apt-get install matrixio-zwave-utils
 
 ```
 
