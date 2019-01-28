@@ -6,14 +6,11 @@
   "homepage": "https://github.com/matrix-io/matrix-creator-malos",
   "repository": "https://github.com/matrix-io/matrix-creator-malos",
   "devDependencies": {
-    "async": "^2.6.0",
-    "lodash": "^3.10.0",
-    "matrix-protos": "",
+    "async": "^2.6.1",
+    "lodash": "^3.10.1",
     "mic": "*",
     "protobufjs": "^5.0.1",
-    "zmq": "*"
-  },
-  "dependencies": {
-    "lodash": "^3.10.1"
+    "matrix-protos": "0.0.26",
+    "zeromq": "^5.1.0"
   }
 }

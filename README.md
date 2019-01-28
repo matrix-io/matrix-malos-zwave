@@ -95,8 +95,8 @@ Then reboot your device. **This process should be run just one time**. The ZM520
 ### Install
 ```bash
 sudo apt-get install matrixio-malos-zwave
-sudo reboot
 ```
+
 #### Configuration
 
 The matrixio-kernel-modules enable a new serial port called `ttyMATRIX0`. This port is the communication channel to the ZM5202. In the **matrixio-malos-zwave** installation process it ask for some configuration of **zipgateway**:
@@ -106,6 +106,8 @@ The matrixio-kernel-modules enable a new serial port called `ttyMATRIX0`. This p
 * IPv6 prefix of the Z-Wave network: **fd00:bbbb::1** [optional]
 * Enable wireless configuration of Z/IP Gateway: **wired** [optional]
 * Wired network interface where the ZIP Client will be connected to: **eth0** [optional]
+
+You will then be prompted to reboot your device. Select "yes," and ssh back into your Raspberry Pi.
 
 You could check if the zipgateway are runing with `more /tmp/zipgateway.log`:
 ```bash
@@ -180,15 +182,62 @@ sudo apt-get update && sudo apt-get upgrade
 sudo reboot
 ```
 
-### Starting manually
-```bash
-# MALOS runs as a service, but to stop it run:
-sudo pkill -9 malos-zwave
+### NodeJS Dependency
 
-# to run manually, just type `malos`
-malos_zwave
+For instance (in the Raspberry):
+
+```bash
+# Install npm (doesn't really matter what version, apt-get node is v0.10...)
+sudo apt-get install npm
+
+# n is a node version manager
+sudo npm install -g n
+
+# node 6.5 is the latest target node version, also installs new npm
+n 6.5
+
+# check version
+node -v
 ```
 
+
+# Install from source
+
+First download the required dependencies.
+
+## Dependencies
+
+```bash
+sudo apt-get install cmake g++ git libmatrixio-protos-dev libmatrixio-malos-dev libreadline-dev matrixio-libzwaveip-dev libxml2-dev libbsd-dev libncurses5-dev  libavahi-client-dev avahi-utils libreadline-dev libgflags-dev
+```
+
+* Using **Raspbian Jessie** install:
+
+```bash
+sudo apt-get install --yes libssl-dev
+```
+
+* Using **Raspbian Stretch** install:
+
+```bash
+sudo apt-get install --yes libssl1.0-dev
+```
+
+## MATRIX Packages
+
+```bash
+# Add repo and key
+curl https://apt.matrix.one/doc/apt-key.gpg | sudo apt-key add -
+echo "deb https://apt.matrix.one/raspbian $(lsb_release -sc) main" | sudo tee /etc/apt/sources.list.d/matrixlabs.list
+
+# Update packages and install
+sudo apt-get update
+sudo apt-get upgrade
+
+# Install dependencies
+sudo apt-get install --yes matrixio-zipgateway
+
+```
 ### Protocol
 
 First of all, you need to know that there are some steps to follow to work:
@@ -237,119 +286,11 @@ You can also remove a node with the `REMOVENODE` operation. All operations are i
 ```
 -------------------------
 
-### NodeJS Dependency
-
-For instance (in the Raspberry):
-
-```bash
-# Install npm (doesn't really matter what version, apt-get node is v0.10...)
-sudo apt-get install npm
-
-# n is a node version manager
-sudo npm install -g n
-
-# node 6.5 is the latest target node version, also installs new npm
-n 6.5
-
-# check version
-node -v
-```
-
-
-# Install from source
-
-
-## Pre-Requisites
-
-```bash
-# Add repo and key
-curl https://apt.matrix.one/doc/apt-key.gpg | sudo apt-key add -
-echo "deb https://apt.matrix.one/raspbian $(lsb_release -sc) main" | sudo tee /etc/apt/sources.list.d/matrixlabs.list
-
-# Update packages and install
-sudo apt-get update
-sudo apt-get upgrade
-
-# Install dependencies
-apt-get install --yes libmatrixio-malos, matrixio-libzwaveip, matrixio-zipgateway
-
-```
-
-
-## Dependencies
-It does have some package dependencies, so please make sure to install the pre-requisites.
-
-```bash
-sudo apt-get install cmake g++ git libmatrixio-protos-dev libmatrixio-malos-dev libreadline-dev matrixio-libzwaveip-dev libxml2-dev libbsd-dev libncurses5-dev  libavahi-client-dev avahi-utils libreadline-dev libgflags-dev
-```
-
-* Using **Raspbian Jessie** install:
-
-```bash
-sudo apt-get install --yes libssl-dev
-```
-
-* Using **Raspbian Stretch** install:
-
-```bash
-sudo apt-get install --yes libssl1.0-dev
-```
-
-
 To start working with **MATRIX Zwave Malos** directly, you'll need to run the following steps: 
 
 ```bash
 git clone https://github.com/matrix-io/matrix-malos-zwave/
 cd matrix-malos-zwave && mkdir build && cd build
 cmake ..
--- The C compiler identification is GNU 6.3.0
--- The CXX compiler identification is GNU 6.3.0
--- Check for working C compiler: /usr/bin/cc
--- Check for working C compiler: /usr/bin/cc -- works
--- Detecting C compiler ABI info
--- Detecting C compiler ABI info - done
--- Detecting C compile features
--- Detecting C compile features - done
--- Check for working CXX compiler: /usr/bin/c++
--- Check for working CXX compiler: /usr/bin/c++ -- works
--- Detecting CXX compiler ABI info
--- Detecting CXX compiler ABI info - done
--- Detecting CXX compile features
--- Detecting CXX compile features - done
--- * * * A D M O B I L I Z E * * *
--- Admobilize: Please treat warnings as errors. Use: -DADM_FATAL_WARNINGS=ON
--- * * * * * * * * * * * * * * * *
--- Looking for pthread.h
--- Looking for pthread.h - found
--- Looking for pthread_create
--- Looking for pthread_create - not found
--- Looking for pthread_create in pthreads
--- Looking for pthread_create in pthreads - not found
--- Looking for pthread_create in pthread
--- Looking for pthread_create in pthread - found
--- Found Threads: TRUE  
--- Found Protobuf: /usr/lib/arm-linux-gnueabihf/libprotobuf.so;-lpthread (found suitable version "3.4.0", minimum required is "3") 
--- Found OpenSSL: /usr/lib/arm-linux-gnueabihf/libssl.so;/usr/lib/arm-linux-gnueabihf/libcrypto.so (found version "1.0.2l") 
--- Found LibXml2: /usr/lib/arm-linux-gnueabihf/libxml2.so (found version "2.9.4") 
--- ZMQ found => /usr/lib/arm-linux-gnueabihf/libzmq.so
--- MATRIX LIB found => /usr/lib/libmatrix_malos.a
--- MATRIX ZMQ LIB found => /usr/lib/libmatrix_malos_zmq.a
--- ZWAVEIP found => /usr/lib/libzwaveip.a
--- XML2 found =>/usr/lib/arm-linux-gnueabihf/libxml2.so
--- gflags found =>/usr/lib/arm-linux-gnueabihf/libgflags.so
--- MATRIX_PROTOS_LIB LIB found => /usr/lib/libmatrixio_protos.a
--- avahi-common found =>/usr/lib/arm-linux-gnueabihf/libavahi-common.so
--- avahi-client found =>/usr/lib/arm-linux-gnueabihf/libavahi-client.so
--- Enabling MDNS...
---   avahi-common found =>/usr/lib/arm-linux-gnueabihf/libavahi-common.so
---   avahi-client found =>/usr/lib/arm-linux-gnueabihf/libavahi-client.so
--- Configuring done
--- Generating done
--- Build files have been written to: /home/pi/github/matrix-malos-zwave/build
 make
-Scanning dependencies of target malos_zwave
-[ 33%] Building CXX object src/CMakeFiles/malos_zwave.dir/malos_zwave.cpp.o
-[ 66%] Building CXX object src/CMakeFiles/malos_zwave.dir/driver_zwave.cpp.o
-[100%] Linking CXX executable malos_zwave
-[100%] Built target malos_zwave
 ```

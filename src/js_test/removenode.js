@@ -16,7 +16,7 @@ var creator_zwave_base_port = 50001; // port for ZWave MALOS
 
 var matrix_io = require('matrix-protos').matrix_io;
 
-var zmq = require('zmq');
+var zmq = require('zeromq');
 var configSocket = zmq.socket('push');
 configSocket.connect('tcp://' + creator_ip + ':' + creator_zwave_base_port /* config */);
 

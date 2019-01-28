@@ -11,7 +11,7 @@
 
 // -------------- Dependencies -------------------------------
 var matrix_io = require('matrix-protos').matrix_io;
-var zmq = require('zmq');
+var zmq = require('zeromq');
 var _ = require('lodash');
 var async = require('async');
 
