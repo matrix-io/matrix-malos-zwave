@@ -22,6 +22,8 @@ sudo apt-get install matrixio-creator-init matrixio-kernel-modules
 # Install Zwave Utils 
 sudo apt-get install matrixio-zwave-utils
 
+# Reboot your device
+sudo reboot
 ```
 
 ### Zwave Utils Setup
@@ -92,6 +94,8 @@ Chip Ready
 
 Then reboot your device. **This process should be run just one time**. The ZM5202 will keep this configuration.
 
+Once you ssh back into your Raspberry Pi, you should see two new files, ID.conf and NVR_file. If not, wait a couple of seconds for them to appear before you move on to the next steps.
+
 ### Install
 ```bash
 sudo apt-get install matrixio-malos-zwave
@@ -107,7 +111,7 @@ The matrixio-kernel-modules enable a new serial port called `ttyMATRIX0`. This p
 * Enable wireless configuration of Z/IP Gateway: **wired** [optional]
 * Wired network interface where the ZIP Client will be connected to: **eth0** [optional]
 
-You will then be prompted to reboot your device. Select "yes," and ssh back into your Raspberry Pi.
+You will then be prompted to reboot your device. Select "yes," then wait for your Pi to shutdown (do not force reboot at this point, background processes have to finish running before shutdown is initiated). Once rebooted, ssh back into your Raspberry Pi.
 
 You could check if the zipgateway are runing with `more /tmp/zipgateway.log`:
 ```bash
@@ -170,17 +174,14 @@ ECDH Public key is
 ```
 
 #### Running as a service
-At this point, on next start, `matrixio-malos-zwave` will be running as a service called:`status matrixio-malos-zwave.service`.
+At this point, on next start, `matrixio-malos-zwave` will be running as a service called `matrixio-malos-zwave.service`. You can see the status of the service using the command below.
 
 ```bash
 sudo systemctl status matrixio-malos-zwave
 ```
 
-### Upgrade
-```bash
-sudo apt-get update && sudo apt-get upgrade
-sudo reboot
-```
+
+# Install Dependencies to Run Zwave Command Files
 
 ### NodeJS Dependency
 
@@ -190,20 +191,16 @@ For instance (in the Raspberry):
 # Install npm (doesn't really matter what version, apt-get node is v0.10...)
 sudo apt-get install npm
 
-# n is a node version manager
-sudo npm install -g n
-
-# node 6.5 is the latest target node version, also installs new npm
-n 6.5
+# install node version manager, then install version 8.6 of node.js
+curl -o- https://raw.githubusercontent.com/creationix/nvm/v0.33.11/install.sh | bash
+. ~/.bashrc
+nvm install 8.6
 
 # check version
 node -v
 ```
 
-
-# Install from source
-
-First download the required dependencies.
+Download the required dependencies to clone our Zwave repo & build the Zwave files.
 
 ## Dependencies
 
@@ -211,34 +208,28 @@ First download the required dependencies.
 sudo apt-get install cmake g++ git libmatrixio-protos-dev libmatrixio-malos-dev libreadline-dev matrixio-libzwaveip-dev libxml2-dev libbsd-dev libncurses5-dev  libavahi-client-dev avahi-utils libreadline-dev libgflags-dev
 ```
 
-* Using **Raspbian Jessie** install:
-
-```bash
-sudo apt-get install --yes libssl-dev
-```
-
-* Using **Raspbian Stretch** install:
+On your **Raspbian Stretch** install:
 
 ```bash
 sudo apt-get install --yes libssl1.0-dev
 ```
 
-## MATRIX Packages
+To start working with **MATRIX Zwave Malos** right away, you'll need to run the following steps: 
 
 ```bash
-# Add repo and key
-curl https://apt.matrix.one/doc/apt-key.gpg | sudo apt-key add -
-echo "deb https://apt.matrix.one/raspbian $(lsb_release -sc) main" | sudo tee /etc/apt/sources.list.d/matrixlabs.list
-
-# Update packages and install
-sudo apt-get update
-sudo apt-get upgrade
-
-# Install dependencies
-sudo apt-get install --yes matrixio-zipgateway
-
+git clone https://github.com/matrix-io/matrix-malos-zwave/
+git checkout si/guide-edits
+cd matrix-malos-zwave && mkdir build && cd build
+cmake ..
+make
 ```
-### Protocol
+To start working with MATRIX Zwave through Javascript, navigate to the following directory:
+```bash
+cd ~/matrix-malos-zwave/src/js_test
+npm install
+```
+
+### How the Protocol Works
 
 First of all, you need to know that there are some steps to follow to work:
 
@@ -285,12 +276,3 @@ You can also remove a node with the `REMOVENODE` operation. All operations are i
 ...
 ```
 -------------------------
-
-To start working with **MATRIX Zwave Malos** directly, you'll need to run the following steps: 
-
-```bash
-git clone https://github.com/matrix-io/matrix-malos-zwave/
-cd matrix-malos-zwave && mkdir build && cd build
-cmake ..
-make
-```
