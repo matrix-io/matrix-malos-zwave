@@ -218,8 +218,9 @@ To start working with **MATRIX Zwave Malos** right away, you'll need to run the 
 
 ```bash
 git clone https://github.com/matrix-io/matrix-malos-zwave/
+cd matrix-malos-zwave
 git checkout si/guide-edits
-cd matrix-malos-zwave && mkdir build && cd build
+mkdir build && cd build
 cmake ..
 make
 ```
