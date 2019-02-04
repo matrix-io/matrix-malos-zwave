@@ -246,6 +246,18 @@ node list.js
 ```
 You can write your own control algorithms by creating Javascript files built off of simpleTest.js.
 
+If you would like to test the test_zwave_accel.js file, you will have to download MATRIX Core (previously knows as MALOS) to allow IMU data to stream.
+
+Run the following commands in your Pi to install and run MATRIX Core:
+
+```bash
+#Install MATRIX Core package
+sudo apt-get install matrixio-malos
+
+#Reboot device so MATRIX Core service runs on next start
+sudo reboot
+```
+
 ### How the Protocol Works
 
 First of all, you need to know that there are some steps to follow to work:
