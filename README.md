@@ -25,11 +25,11 @@ sudo apt-get upgrade
 # Install MATRIX Creator Init
 sudo apt-get install matrixio-creator-init matrixio-kernel-modules
 
-# Install Zwave Utils 
-sudo apt-get install matrixio-zwave-utils
-
 # Reboot your device
 sudo reboot
+
+# Install Zwave Utils 
+sudo apt-get install matrixio-zwave-utils
 ```
 
 ### Zwave Utils Setup
