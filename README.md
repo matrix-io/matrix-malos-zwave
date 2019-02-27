@@ -1,14 +1,20 @@
-# MALOS Zwave
+# MALOS (MATRIX Core) Zwave
 
-Zwave abstraction layer for MATRIX Creator usable via 0MQ.
+Zwave abstraction layer for MATRIX Creator via 0MQ.
 [Protocol buffers](https://developers.google.com/protocol-buffers/docs/proto3) are used for data exchange.
 
-You can also use MALOS to query sensors of the [MATRIX Creator](https://creator.matrix.one) and to control the MATRIX Creator from any language that supports protocol buffers (version 3.X) and 0MQ,
+This library allows listing, adding, removing, and controlling Zwave nodes.
+
+You can also use MALOS ([MATRIX Core](https://matrix-io.github.io/matrix-documentation/matrix-core/overview/)) to query sensors of the [MATRIX Creator](https://creator.matrix.one) and to control the MATRIX Creator from any language that supports protocol buffers (version 3.X) and 0MQ,
 Connections to MALOS can be made both from localhost (127.0.0.1) and from remote computers that are on the same network.
 
+
 ### Zwave Initial Setup
+
+Ensure you have a Raspberry Pi, attached with a MATRIX Creator, that's flashed with [**Raspbian Stretch**](https://www.raspberrypi.org/downloads/raspbian/).
+
 ```bash
-# Add repo and key
+# Add MATRIX repo and key
 curl https://apt.matrix.one/doc/apt-key.gpg | sudo apt-key add -
 echo "deb https://apt.matrix.one/raspbian $(lsb_release -sc) main" | sudo tee /etc/apt/sources.list.d/matrixlabs.list
 
@@ -19,14 +25,16 @@ sudo apt-get upgrade
 # Install MATRIX Creator Init
 sudo apt-get install matrixio-creator-init matrixio-kernel-modules
 
+# Reboot your device
+sudo reboot
+
 # Install Zwave Utils 
 sudo apt-get install matrixio-zwave-utils
-
 ```
 
 ### Zwave Utils Setup
 
-Run `zwave_conf` in order to set up the ZM5202 in the MATRIX Creator. 
+Run `zwave_conf` in order to set up the ZM5202 Zwave module in the MATRIX Creator. 
 
 ```bash
 $ zwave_conf 
@@ -92,22 +100,29 @@ Chip Ready
 
 Then reboot your device. **This process should be run just one time**. The ZM5202 will keep this configuration.
 
-### Install
+Once you ssh back into your Raspberry Pi, you should see two new files, ID.conf and NVR_file. If not, wait a couple of seconds for them to appear before you move on to the next steps.
+
+### Install MATRIX MALOS Zwave
 ```bash
 sudo apt-get install matrixio-malos-zwave
-sudo reboot
 ```
+Near the end of this installation process, you will be prompted to configure **zipgateway** for the Zwave controller. The configuration settings should be as shown in the following section.
+
+If you are not prompted to configure **zipgateway**, run the above command to install **matrixio-malos-zwave** again.
+
 #### Configuration
 
-The matrixio-kernel-modules enable a new serial port called `ttyMATRIX0`. This port is the communication channel to the ZM5202. In the **matrixio-malos-zwave** installation process it ask for some configuration of **zipgateway**:
+The matrixio-kernel-modules enable a new serial port called `ttyMATRIX0`. This port is the communication channel to the ZM5202. The **zipgateway** is shown below.
 
-* The serial port where z-wave controller is connected: **/dev/ttyMATRIX0** [mandatory]
+* The serial port where z-wave controller is connected: **/dev/ttyMATRIX0** (You will have to rename the port manually) [mandatory]
 * The IPv6 address of the Z/IP Gateway: **fd00:aaaa::3** [optional]
 * IPv6 prefix of the Z-Wave network: **fd00:bbbb::1** [optional]
 * Enable wireless configuration of Z/IP Gateway: **wired** [optional]
 * Wired network interface where the ZIP Client will be connected to: **eth0** [optional]
 
-You could check if the zipgateway are runing with `more /tmp/zipgateway.log`:
+You will then be prompted to reboot your device. Select "yes," then wait for your Pi to shutdown (do not force reboot at this point, background processes have to finish running before shutdown is initiated). Once rebooted, ssh back into your Raspberry Pi.
+
+You could check if zipgateway is runing with `more /tmp/zipgateway.log` as shown below:
 ```bash
 $ more /tmp/zipgateway.log
 
@@ -166,30 +181,84 @@ ECDH Public key is
 17628 ZIP TCP Client Started.
 17628 No portal host defined. Running without portal.
 ```
+The zipgateway output may be very long. As long as the beginning of the output looks something like the above, you can hit Ctrl+C to exit the log.
 
 #### Running as a service
-At this point, on next start, `matrixio-malos-zwave` will be running as a service called:`status matrixio-malos-zwave.service`.
+At this point, `matrixio-malos-zwave` will be running as a service called `matrixio-malos-zwave.service`. You can see the status of the service using the command below.
 
 ```bash
 sudo systemctl status matrixio-malos-zwave
 ```
 
-### Upgrade
+
+# Install Dependencies to Run Zwave Command Files
+
+### NodeJS
+
+In your Raspberry Pi's terminal, run the following.
+
 ```bash
-sudo apt-get update && sudo apt-get upgrade
+# Install npm (doesn't really matter what version, apt-get node is v0.10...)
+sudo apt-get install npm
+
+# install node version manager, then install version 8.6 of node.js
+curl -o- https://raw.githubusercontent.com/creationix/nvm/v0.33.11/install.sh | bash
+. ~/.bashrc
+nvm install 8.6
+
+# check version
+node -v
+```
+
+Download the required dependencies to clone our Zwave repo & build the Zwave files in MATRIX Core.
+
+## Dependencies
+
+```bash
+sudo apt-get install cmake g++ git libmatrixio-protos-dev libmatrixio-malos-dev libreadline-dev matrixio-libzwaveip-dev libxml2-dev libbsd-dev libncurses5-dev  libavahi-client-dev avahi-utils libreadline-dev libgflags-dev
+```
+Then install the following:
+
+```bash
+sudo apt-get install --yes libssl1.0-dev
+```
+
+To start working with **MATRIX Zwave Malos** right away, run the following steps: 
+
+```bash
+git clone https://github.com/matrix-io/matrix-malos-zwave/
+cd matrix-malos-zwave
+git checkout si/guide-edits
+mkdir build && cd build
+cmake ..
+make
+```
+To start working with MATRIX Zwave through Javascript, navigate to the following directory and install all required node dependencies from the package.json file:
+```bash
+cd ~/matrix-malos-zwave/src/js_test
+npm install
+```
+This directory has 4 files to list, add, and remove Zwave nodes, as well as a simple on/off control test example.
+
+For example, to list the Zwave components connected to your MATRIX Creator, run the following:
+```bash
+node list.js
+```
+You can write your own control algorithms by creating Javascript files built off of simpleTest.js.
+
+If you would like to test the test_zwave_accel.js file, you will have to download MATRIX Core (previously knows as MALOS) to allow IMU data to stream.
+
+Run the following commands in your Pi to install and run MATRIX Core:
+
+```bash
+#Install MATRIX Core package
+sudo apt-get install matrixio-malos
+
+#Reboot device so MATRIX Core service runs on next start
 sudo reboot
 ```
 
-### Starting manually
-```bash
-# MALOS runs as a service, but to stop it run:
-sudo pkill -9 malos-zwave
-
-# to run manually, just type `malos`
-malos_zwave
-```
-
-### Protocol
+### How the Protocol Works
 
 First of all, you need to know that there are some steps to follow to work:
 
@@ -236,120 +305,3 @@ You can also remove a node with the `REMOVENODE` operation. All operations are i
 ...
 ```
 -------------------------
-
-### NodeJS Dependency
-
-For instance (in the Raspberry):
-
-```bash
-# Install npm (doesn't really matter what version, apt-get node is v0.10...)
-sudo apt-get install npm
-
-# n is a node version manager
-sudo npm install -g n
-
-# node 6.5 is the latest target node version, also installs new npm
-n 6.5
-
-# check version
-node -v
-```
-
-
-# Install from source
-
-
-## Pre-Requisites
-
-```bash
-# Add repo and key
-curl https://apt.matrix.one/doc/apt-key.gpg | sudo apt-key add -
-echo "deb https://apt.matrix.one/raspbian $(lsb_release -sc) main" | sudo tee /etc/apt/sources.list.d/matrixlabs.list
-
-# Update packages and install
-sudo apt-get update
-sudo apt-get upgrade
-
-# Install dependencies
-apt-get install --yes libmatrixio-malos, matrixio-libzwaveip, matrixio-zipgateway
-
-```
-
-
-## Dependencies
-It does have some package dependencies, so please make sure to install the pre-requisites.
-
-```bash
-sudo apt-get install cmake g++ git libmatrixio-protos-dev libmatrixio-malos-dev libreadline-dev matrixio-libzwaveip-dev libxml2-dev libbsd-dev libncurses5-dev  libavahi-client-dev avahi-utils libreadline-dev libgflags-dev
-```
-
-* Using **Raspbian Jessie** install:
-
-```bash
-sudo apt-get install --yes libssl-dev
-```
-
-* Using **Raspbian Stretch** install:
-
-```bash
-sudo apt-get install --yes libssl1.0-dev
-```
-
-
-To start working with **MATRIX Zwave Malos** directly, you'll need to run the following steps: 
-
-```bash
-git clone https://github.com/matrix-io/matrix-malos-zwave/
-cd matrix-malos-zwave && mkdir build && cd build
-cmake ..
--- The C compiler identification is GNU 6.3.0
--- The CXX compiler identification is GNU 6.3.0
--- Check for working C compiler: /usr/bin/cc
--- Check for working C compiler: /usr/bin/cc -- works
--- Detecting C compiler ABI info
--- Detecting C compiler ABI info - done
--- Detecting C compile features
--- Detecting C compile features - done
--- Check for working CXX compiler: /usr/bin/c++
--- Check for working CXX compiler: /usr/bin/c++ -- works
--- Detecting CXX compiler ABI info
--- Detecting CXX compiler ABI info - done
--- Detecting CXX compile features
--- Detecting CXX compile features - done
--- * * * A D M O B I L I Z E * * *
--- Admobilize: Please treat warnings as errors. Use: -DADM_FATAL_WARNINGS=ON
--- * * * * * * * * * * * * * * * *
--- Looking for pthread.h
--- Looking for pthread.h - found
--- Looking for pthread_create
--- Looking for pthread_create - not found
--- Looking for pthread_create in pthreads
--- Looking for pthread_create in pthreads - not found
--- Looking for pthread_create in pthread
--- Looking for pthread_create in pthread - found
--- Found Threads: TRUE  
--- Found Protobuf: /usr/lib/arm-linux-gnueabihf/libprotobuf.so;-lpthread (found suitable version "3.4.0", minimum required is "3") 
--- Found OpenSSL: /usr/lib/arm-linux-gnueabihf/libssl.so;/usr/lib/arm-linux-gnueabihf/libcrypto.so (found version "1.0.2l") 
--- Found LibXml2: /usr/lib/arm-linux-gnueabihf/libxml2.so (found version "2.9.4") 
--- ZMQ found => /usr/lib/arm-linux-gnueabihf/libzmq.so
--- MATRIX LIB found => /usr/lib/libmatrix_malos.a
--- MATRIX ZMQ LIB found => /usr/lib/libmatrix_malos_zmq.a
--- ZWAVEIP found => /usr/lib/libzwaveip.a
--- XML2 found =>/usr/lib/arm-linux-gnueabihf/libxml2.so
--- gflags found =>/usr/lib/arm-linux-gnueabihf/libgflags.so
--- MATRIX_PROTOS_LIB LIB found => /usr/lib/libmatrixio_protos.a
--- avahi-common found =>/usr/lib/arm-linux-gnueabihf/libavahi-common.so
--- avahi-client found =>/usr/lib/arm-linux-gnueabihf/libavahi-client.so
--- Enabling MDNS...
---   avahi-common found =>/usr/lib/arm-linux-gnueabihf/libavahi-common.so
---   avahi-client found =>/usr/lib/arm-linux-gnueabihf/libavahi-client.so
--- Configuring done
--- Generating done
--- Build files have been written to: /home/pi/github/matrix-malos-zwave/build
-make
-Scanning dependencies of target malos_zwave
-[ 33%] Building CXX object src/CMakeFiles/malos_zwave.dir/malos_zwave.cpp.o
-[ 66%] Building CXX object src/CMakeFiles/malos_zwave.dir/driver_zwave.cpp.o
-[100%] Linking CXX executable malos_zwave
-[100%] Built target malos_zwave
-```

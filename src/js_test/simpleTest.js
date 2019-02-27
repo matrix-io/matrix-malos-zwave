@@ -42,12 +42,6 @@ DEVICE_TO_USE.classNumber = matrix_io.malos.v1.comm.ZWaveClassType[DEVICE_TO_USE
 
 let serviceToSend = ''; // The device we want to send this to, needs to be found
 
-// ------------- IMU ------------------------------------------
-const CREATOR_IMU_BASE_PORT = 20013;
-const CREATOR_IMU_PING_PORT = CREATOR_IMU_BASE_PORT + 1;
-const CREATOR_IMU_ERROR_PORT = CREATOR_IMU_BASE_PORT + 2;
-const CREATOR_IMU_DATA_PORT = CREATOR_IMU_BASE_PORT + 3;
-
 const HEX_ON = 0xFF;
 const HEX_OFF = 0x00;
 
@@ -103,32 +97,7 @@ function list() {
   return zwave.config.send(matrix_io.malos.v1.driver.DriverConfig.encode(list_config).finish());
 }
 
-//Used to send and read IMU commands
-var imu = {
-  config: createSocket(CREATOR_IP, CREATOR_IMU_BASE_PORT),
-  ping: createSocket(CREATOR_IP, CREATOR_IMU_PING_PORT, {
-    pingInterval: DEFAULT_PING_INTERVAL
-  }),
-  error: createSocket(CREATOR_IP, CREATOR_IMU_ERROR_PORT, {}, 'sub'),
-  data: createSocket(CREATOR_IP, CREATOR_IMU_DATA_PORT, {}, 'sub'),
-};
-
-// -------------- IMU Configuration --------------------------
-var imuListenCommand = matrix_io.malos.v1.driver.DriverConfig.create({
-  delayBetweenUpdates: 2.0, // 2 seconds between updates
-  timeoutAfterLastPing: 6.0 // Stop sending updates 6 seconds after pings.
-});
-
-//Start listening for IMU updates (MALOS)
-imu.config.send(matrix_io.malos.v1.driver.DriverConfig.encode(imuListenCommand).finish());
-
-//Print IMU errors
-imu.error.on('message', (err) => {
-  console.log('Message received: IMU error: ', err.toString('utf8'));
-});
-
-
-//Handle IMU data
+// Set Zwave Device State
 function set_state(value) {
   console.log('Updating state! (' + value + ')');
   if (!_.isNull(serviceToSend)) {
@@ -155,20 +124,19 @@ function set_state(value) {
 }
 
 var pastState;
-
+var tempState;
+var newState;
+newState = HEX_OFF;
+pastState = HEX_ON;
 function toggle() {
-  console.log('Enabled Z axis triggering!');
-
-  imu.data.on('message', (buffer) => {
-    var newState;
-    var data = matrix_io.malos.v1.sense.Imu.decode(buffer);
-    newState = (data.accelZ < 0) ? HEX_OFF : HEX_ON;
-    if (newState != pastState) {
-      console.log('Changing to:', newState);
-      pastState = newState;
-      set_state(newState);
-    }
-  });
+  console.log('YAY! Enabled Z axis triggering!');
+  if (newState != pastState) {
+    console.log('Changing to:', newState);
+    tempState = pastState;
+    pastState = newState;
+    set_state(newState);
+    newState = tempState;
+  }
 }
 
 //Listen to ZWave activity
@@ -209,4 +177,6 @@ zwave.data.on('message', (data) => {
 });
 
 list(); //List ZWave devices
-toggle();
+setInterval(() => {
+  toggle();
+}, 2000);
