@@ -51,7 +51,6 @@ pipeline:
         --gpg-options="--batch --passphrase-fd 0"
         matrixio-malos-zwave_${DISTRIBUTION}-${CODENAME}-$${PKG_VER}-$${COMPONENT}_armhf.deb
 
-
   notify-always:
     image: plugins/slack
     secrets: [slack_webhook]
