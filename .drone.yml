@@ -12,7 +12,7 @@ pipeline:
       - apt-get update
       - apt-get install --yes libmatrixio-protos-dev libmatrixio-malos-dev libreadline-dev matrixio-libzwaveip-dev libxml2-dev libbsd-dev libncurses5-dev  libavahi-client-dev avahi-utils libreadline-dev libgflags-dev
       - LIBSSL=$([ "${CODENAME}" = "jessie" ] && echo "libssl-dev" || echo "libssl1.0-dev")
-      - apt-get install --yes ${LIBSSL}
+      - apt-get install --yes $${LIBSSL}
       - esac
       - debuild -us -uc -b
       - mv ../*.deb .
