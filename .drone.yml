@@ -11,13 +11,8 @@ pipeline:
       - echo "deb https://apt.matrix.one/raspbian ${CODENAME} $COMPONENT" > /etc/apt/sources.list.d/matrixlabs.list
       - apt-get update
       - apt-get install --yes libmatrixio-protos-dev libmatrixio-malos-dev libreadline-dev matrixio-libzwaveip-dev libxml2-dev libbsd-dev libncurses5-dev  libavahi-client-dev avahi-utils libreadline-dev libgflags-dev
-      - case ${CODENAME} in
-          stretch)      
-            apt-get install --yes libssl1.0-dev
-            ;; 
-          jessie)
-            apt-get install --yes libssl-dev
-            ;;
+      - LIBSSL=$([ "${CODENAME}" = "jessie" ] && echo "libssl-dev" || echo "libssl1.0-dev")
+      - apt-get install --yes ${LIBSSL}
       - esac
       - debuild -us -uc -b
       - mv ../*.deb .
