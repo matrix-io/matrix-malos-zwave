@@ -1,7 +1,7 @@
 pipeline:
   build-debs:
     when:
-      branch: [master, dev]
+      branch: [master]
       event: [ push, tag ]
     image: gcr.io/admobilize-testing/creator-builder-${ARCHITECTURE}-${DISTRIBUTION}-${CODENAME}:${IMAGE_TAG}
     privileged: true
@@ -9,15 +9,13 @@ pipeline:
       - curl https://apt.matrix.one/doc/apt-key.gpg | apt-key add -
       - echo "deb https://apt.matrix.one/raspbian ${CODENAME} main" > /etc/apt/sources.list.d/matrixlabs.list
       - ${UPDATE_CMD}
-      - apt-get install --yes libmatrixio-protos-dev libmatrixio-malos-dev libreadline-dev matrixio-libzwaveip-dev libxml2-dev libbsd-dev libncurses5-dev  libavahi-client-dev avahi-utils libreadline-dev libgflags-dev
-      - LIBSSL=$([ "${CODENAME}" = "jessie" ] && echo "libssl-dev" || echo "libssl1.0-dev")
-      - apt-get install --yes $${LIBSSL}
+      - apt-get install --yes libmatrixio-protos-dev libmatrixio-malos-dev libreadline-dev matrixio-libzwaveip-dev libxml2-dev libbsd-dev libncurses5-dev  libavahi-client-dev avahi-utils libreadline-dev libgflags-dev libssl1.0-dev
       - debuild -us -uc -b
       - mv ../*.deb .
 
   upload-debs:
     when:
-      branch: [master, dev]
+      branch: [master]
       event: [ push, tag ]
     image: gcr.io/admobilize-testing/gce-builder:latest
     secrets: [aws_access_key_id, aws_secret_access_key, gpg_key, gpg_pass]
