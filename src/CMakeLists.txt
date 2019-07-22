@@ -7,7 +7,7 @@ ADM_EXTRA_WARNINGS()
 
 find_package(Protobuf 3 REQUIRED)
 find_package(Threads REQUIRED)
-find_package(OpenSSL REQUIRED 1.0.1)
+find_package(OpenSSL REQUIRED)
 find_package(LibXml2 REQUIRED)
 
 find_library(AVAHI_LIBRARY-COMMON NAMES avahi-common)
