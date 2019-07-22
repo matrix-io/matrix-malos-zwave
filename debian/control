@@ -10,7 +10,7 @@ Package: matrixio-malos-zwave
 Conflicts: matrix-malos-zwave
 Replaces: matrix-malos-zwave
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}, libmatrixio-malos, matrixio-libzwaveip, matrixio-zipgateway, libgflags2v5
+Depends: ${shlibs:Depends}, ${misc:Depends}, libmatrixio-malos, matrixio-libzwaveip, matrixio-zipgateway, libgflags2.*
 Description: Allows queries to MATRIX Creator hardware via ZMQ.
  Matrix Creator (https://creator.matrix.one) is a board that can be added
  to a Raspberry Pi v2 or v3. This board has many sensors. This program
